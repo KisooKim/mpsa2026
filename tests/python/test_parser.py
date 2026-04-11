@@ -122,13 +122,20 @@ class ParseSessionSample2315178Test(unittest.TestCase):
 
 
 DETAILS_DIR = Path(__file__).resolve().parents[2] / "raw_html" / "details"
+FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures"
+
+_FIXTURE_MAP = {
+    "2306163": FIXTURES_DIR / "sample_roundtable_participants.html",
+    "2324108": FIXTURES_DIR / "sample_lecture.html",
+}
 
 
 class ParseSessionParticipantsTest(unittest.TestCase):
     """Tests for non-canonical roles -> participants field (Issue 1)."""
 
     def _load(self, session_id: str) -> dict:
-        html = (DETAILS_DIR / f"session_{session_id}.html").read_text(encoding="utf-8")
+        path = _FIXTURE_MAP.get(session_id, DETAILS_DIR / f"session_{session_id}.html")
+        html = path.read_text(encoding="utf-8")
         return parse_session(html)
 
     # --- session 2306163: Roundtable with Participants role ---
@@ -263,9 +270,7 @@ class ParseSessionLectureTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        path = Path(__file__).resolve().parents[2] / "raw_html" / "details" / "session_2324108.html"
-        if not path.exists():
-            raise unittest.SkipTest("session_2324108.html not present")
+        path = FIXTURES_DIR / "sample_lecture.html"
         cls.s = parse_session(path.read_text(encoding="utf-8"))
 
     def test_lecturer_in_all_people(self):
