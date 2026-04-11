@@ -187,11 +187,59 @@
     return section;
   }
 
+  function countByField(program, field) {
+    const counts = {};
+    for (const s of program.sessions || []) {
+      const v = s[field];
+      if (v) counts[v] = (counts[v] || 0) + 1;
+    }
+    return counts;
+  }
+
+  function divisionFilterSection(program, state) {
+    const section = sectionEl("Division");
+    const search = document.createElement("input");
+    search.type = "text";
+    search.className = "sidebar-search";
+    search.placeholder = "Filter divisions…";
+    section.appendChild(search);
+
+    const list = el("div", "check-list");
+    section.appendChild(list);
+    const counts = countByField(program, "division");
+
+    function renderList() {
+      list.innerHTML = "";
+      const q = search.value.trim().toLowerCase();
+      for (const div of program.divisions || []) {
+        if (q && !div.toLowerCase().includes(q)) continue;
+        const row = el("label", "check-row");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = div;
+        cb.checked = (state.divisions || []).includes(div);
+        cb.addEventListener("change", () => {
+          const current = new Set(window.MPSA_APP.getState().divisions || []);
+          if (cb.checked) current.add(div); else current.delete(div);
+          window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), divisions: Array.from(current).sort() });
+        });
+        row.appendChild(cb);
+        row.appendChild(document.createTextNode(" " + div));
+        if (counts[div]) row.appendChild(el("span", "count", String(counts[div])));
+        list.appendChild(row);
+      }
+    }
+    search.addEventListener("input", renderList);
+    renderList();
+    return section;
+  }
+
   function renderSidebar(program, state /*, presets, activePresetId */) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
     sidebar.innerHTML = "";
     sidebar.appendChild(dateFilterSection(program, state));
+    sidebar.appendChild(divisionFilterSection(program, state));
   }
 
   function renderFilterSummary(state, totalCount, activePresetName) {
