@@ -16,6 +16,10 @@
     );
   }
 
+  // Order-sensitive array comparison. Callers must keep filter arrays sorted
+  // (render.js does this via Array.from(set).sort() at every mutation point);
+  // if a future caller pushes without sorting, preset-modification detection
+  // will silently misbehave. Keep filter arrays canonical.
   function eqArr(a, b) {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
