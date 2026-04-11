@@ -1,0 +1,95 @@
+(function (root) {
+  const NS = root.MPSA = root.MPSA || {};
+
+  function emptyState() {
+    return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "" };
+  }
+
+  function isEmpty(state) {
+    if (!state) return true;
+    return (
+      (state.dates || []).length === 0 &&
+      (state.authors || []).length === 0 &&
+      (state.divisions || []).length === 0 &&
+      (state.sessionTypes || []).length === 0 &&
+      !(state.keyword && state.keyword.trim())
+    );
+  }
+
+  function eqArr(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  function equals(a, b) {
+    return (
+      eqArr(a.dates || [], b.dates || []) &&
+      eqArr(a.authors || [], b.authors || []) &&
+      eqArr(a.divisions || [], b.divisions || []) &&
+      eqArr(a.sessionTypes || [], b.sessionTypes || []) &&
+      (a.keyword || "") === (b.keyword || "")
+    );
+  }
+
+  function collectSessionText(session) {
+    const parts = [session.title || ""];
+    for (const p of session.papers || []) {
+      parts.push(p.title || "");
+      for (const a of p.authors || []) parts.push(a.name || "");
+    }
+    for (const c of session.chair || []) parts.push(c.name || "");
+    for (const c of session.co_chair || []) parts.push(c.name || "");
+    for (const d of session.discussant || []) parts.push(d.name || "");
+    for (const p of session.participants || []) parts.push(p.name || "");
+    return parts.join(" ").toLowerCase();
+  }
+
+  function matchesDates(session, state) {
+    if (!state.dates || state.dates.length === 0) return true;
+    return state.dates.includes(session.date);
+  }
+
+  function matchesDivisions(session, state) {
+    if (!state.divisions || state.divisions.length === 0) return true;
+    return state.divisions.includes(session.division);
+  }
+
+  function matchesSessionTypes(session, state) {
+    if (!state.sessionTypes || state.sessionTypes.length === 0) return true;
+    return state.sessionTypes.includes(session.session_type);
+  }
+
+  function matchesAuthors(session, state) {
+    if (!state.authors || state.authors.length === 0) return true;
+    const bag = (session.all_people || []).join(" | ");
+    for (const authorQuery of state.authors) {
+      const needle = String(authorQuery).toLowerCase();
+      if (bag.includes(needle)) return true;
+    }
+    return false;
+  }
+
+  function matchesKeyword(session, state) {
+    const kw = (state.keyword || "").trim().toLowerCase();
+    if (!kw) return true;
+    const haystack = collectSessionText(session);
+    const tokens = kw.split(/\s+/).filter(Boolean);
+    for (const t of tokens) {
+      if (!haystack.includes(t)) return false;
+    }
+    return true;
+  }
+
+  function matches(session, state) {
+    return (
+      matchesDates(session, state) &&
+      matchesDivisions(session, state) &&
+      matchesSessionTypes(session, state) &&
+      matchesAuthors(session, state) &&
+      matchesKeyword(session, state)
+    );
+  }
+
+  NS.filters = { emptyState, isEmpty, equals, matches };
+})(typeof window !== "undefined" ? window : globalThis);
