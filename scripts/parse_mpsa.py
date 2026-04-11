@@ -18,15 +18,32 @@ _MONTH_MAP = {
     "September": 9, "October": 10, "November": 11, "December": 12,
 }
 
-# h4 role labels that map to output keys
-_ROLE_PATTERNS = {
-    re.compile(r"^Chairs?$"):        "chair",
-    re.compile(r"^Co-Chairs?$"):     "co_chair",
-    re.compile(r"^Discussants?$"):   "discussant",
-    re.compile(r"^Participants?$"):  "participant",
-    re.compile(r"^Coordinators?$"):  "coordinator",
-    re.compile(r"^Lecturer$"):       "lecturer",
+# h4 role labels that map to canonical output keys (chair / co_chair / discussant)
+_CANONICAL_ROLE_PATTERNS = {
+    re.compile(r"^Chairs?$"):      "chair",
+    re.compile(r"^Co-Chairs?$"):   "co_chair",
+    re.compile(r"^Discussants?$"): "discussant",
 }
+
+# h4 role labels that are person-bearing but non-canonical → go into participants list.
+# Each matched label is stored verbatim as the "role" field on each person entry.
+_PARTICIPANT_ROLE_PATTERNS = [
+    re.compile(r"^Participants?$"),
+    re.compile(r"^Coordinators?$"),
+    re.compile(r"^Lecturer$"),
+]
+
+# h4 labels that are NOT person-bearing — skip entirely.
+_NON_PERSON_H4 = frozenset({
+    "Section",
+    "Individual Presentations",
+    "Audience Participation",
+    "Brief Overview",
+    "Cosponsor",
+    "Cosponsors",
+    "Co-sponsor",
+    "Co-sponsors",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -126,13 +143,36 @@ def _extract_session_id(soup: BeautifulSoup) -> str:
 # ---------------------------------------------------------------------------
 def _parse_author_segment(seg: list) -> dict:
     """
-    Each segment is a list of ('TAG_I', text) or ('TEXT', text) pairs
-    for one author's span of the paper <p>.
+    Parse one author's token sequence into {name, affiliation}.
 
-    Name: all <i> text tokens rstripped of commas, joined with spaces.
-    When an <i> text ends with a raw comma, that is the LAST name <i>;
-    subsequent <i> tags (duplicate-surname bug) and text nodes form affiliation.
-    Affiliation: text nodes after name <i> sequence, stripped of leading ', '.
+    Each segment is a list of ('TAG_I', text) or ('TEXT', text) pairs
+    for one author's span of the paper (or person-role) <p>.
+
+    WHY THIS FSM EXISTS — the duplicate-surname anomaly
+    ---------------------------------------------------
+    A small number of MPSA records have a data-quality bug where the last name
+    appears twice inside consecutive <i> tags, with the first occurrence ending
+    in a raw comma:
+
+        <i>Ajit</i> <i>Phadnis,</i> <i>Phadnis</i>
+
+    The naive "join all <i> tags, strip trailing commas" algorithm produces the
+    wrong name "Ajit Phadnis Phadnis" (triplicate/duplicate surname).  A simpler
+    fix of de-duplicating tokens would silently break people whose names really
+    do repeat a word.
+
+    FSM RULE: if any <i> tag ends with a raw comma (','), that tag is treated as
+    the LAST name token.  All subsequent <i> tags in the same author segment are
+    considered affiliation artifacts (the duplicate-surname repetition) and are
+    skipped.  Text nodes that follow also go to the affiliation, as usual.
+
+    Result for the Phadnis case:
+        name        = "Ajit Phadnis"      (comma-terminated <i> stripped)
+        affiliation = ""                  (the duplicate <i>Phadnis</i> dropped)
+
+    Name: all <i> text tokens rstripped of commas, joined with spaces,
+          up to and including the first comma-terminated token.
+    Affiliation: text nodes after the name <i> sequence, stripped of leading ', '.
     """
     name_parts = []
     aff_texts = []
@@ -274,7 +314,13 @@ def parse_session(detail_html: str) -> dict:
     """
     Parse a single MPSA 2026 session detail HTML page.
     Returns a dict with keys: id, date, start_time, end_time, time_slot,
-    room, title, session_type, division, chair, co_chair, discussant, papers.
+    room, title, session_type, division, chair, co_chair, discussant,
+    participants, papers.
+
+    The ``participants`` list collects every person found under a non-canonical
+    role <h4> (Participant/Participants, Coordinator/Coordinators, Lecturer).
+    Each entry is {name, affiliation, role} where ``role`` is the h4 label
+    as it appeared in the HTML (e.g. "Participants", "Coordinator", "Lecturer").
     """
     soup = BeautifulSoup(detail_html, "html.parser")
 
@@ -322,10 +368,18 @@ def parse_session(detail_html: str) -> dict:
     chair = []
     co_chair = []
     discussant = []
+    participants = []  # non-canonical person-bearing roles
 
     for h4 in main_inner.find_all("h4"):
         label = h4.get_text(strip=True)
-        for pattern, key in _ROLE_PATTERNS.items():
+
+        # Skip non-person sections outright
+        if label in _NON_PERSON_H4:
+            continue
+
+        # Try canonical roles first
+        canonical_matched = False
+        for pattern, key in _CANONICAL_ROLE_PATTERNS.items():
             if pattern.match(label):
                 ul = h4.find_next_sibling("ul")
                 people = _parse_role_ul(ul)
@@ -335,7 +389,20 @@ def parse_session(detail_html: str) -> dict:
                     co_chair = people
                 elif key == "discussant":
                     discussant = people
-                # participant, coordinator, lecturer: not in output dict but no crash
+                canonical_matched = True
+                break
+
+        if canonical_matched:
+            continue
+
+        # Try non-canonical person-bearing roles → participants list
+        for pattern in _PARTICIPANT_ROLE_PATTERNS:
+            if pattern.match(label):
+                ul = h4.find_next_sibling("ul")
+                people = _parse_role_ul(ul)
+                for person in people:
+                    person["role"] = label  # store verbatim h4 label
+                participants.extend(people)
                 break
 
     # --- Papers ---
@@ -362,5 +429,6 @@ def parse_session(detail_html: str) -> dict:
         "chair": chair,
         "co_chair": co_chair,
         "discussant": discussant,
+        "participants": participants,
         "papers": papers,
     }

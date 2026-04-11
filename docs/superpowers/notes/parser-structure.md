@@ -224,11 +224,33 @@ def extract_person(li):
     return {'name': name, 'affiliation': affiliation}
 ```
 
+> **WARNING — the naive "join all `<i>` tags" algorithm above is INCORRECT for the
+> duplicate-surname bug (see Phadnis case below).** The actual implementation uses an
+> FSM in `_parse_author_segment` — see the note below.
+
 **Name anomalies to handle:**
 - Middle names / initials: `<i>Tevfik Murat</i> <i>Yildirim</i>` — first `<i>` can contain multiple words (first + middle).
 - Middle names as separate `<i>`: `<i>Adam</i> <i>J.</i> <i>Berinsky</i>` — join all three.
 - Trailing comma inside an `<i>`: `<i>Phadnis,</i>` — strip with `.rstrip(',')`.
-- Triplicate bug: `<i>Ajit</i> <i>Phadnis,</i> <i>Phadnis</i>` — this is a data-quality issue (duplicated surname), not a structural variant. The parser should store whatever the HTML says.
+- Triplicate bug: `<i>Ajit</i> <i>Phadnis,</i> <i>Phadnis</i>` — this is a data-quality issue (duplicated surname), not a structural variant.
+
+**FSM rule for the duplicate-surname bug (implemented in `_parse_author_segment`):**
+
+The naive algorithm of "join all `<i>` tags, strip commas" produces "Ajit Phadnis Phadnis"
+for the above HTML — wrong.  The actual parser uses a finite-state machine:
+
+> **Rule:** if any `<i>` tag's text ends with a raw comma (`,`), that tag is the last
+> name token.  All subsequent `<i>` tags in the same author segment are treated as
+> affiliation artifacts (the duplicate-surname repetition) and are **skipped**.
+> Text nodes that follow still go to the affiliation field as usual.
+
+Result for the Phadnis record:
+- `<i>Ajit</i>` → name part "Ajit" (no trailing comma, still in name mode)
+- `<i>Phadnis,</i>` → name part "Phadnis" (trailing comma stripped; FSM switches to affiliation mode)
+- `<i>Phadnis</i>` → **skipped** (in affiliation mode, TAG_I is the duplicate artifact)
+- Final name: `"Ajit Phadnis"`, affiliation: `""`
+
+This is why `_parse_author_segment` must NOT be "simplified" to the naive join.
 
 ---
 
