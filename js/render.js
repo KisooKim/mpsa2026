@@ -135,5 +135,38 @@
     }
   }
 
-  NS.render = { renderMain };
+  function chipEl(text) {
+    return el("span", "summary-chip", text);
+  }
+
+  function renderFilterSummary(state, totalCount, activePresetName) {
+    const bar = document.getElementById("filter-summary");
+    if (!bar) return;
+    bar.innerHTML = "";
+    if (NS.filters.isEmpty(state)) return; // CSS :empty hides it
+
+    if (activePresetName) {
+      const badge = el("span", "summary-preset", "💾 " + activePresetName);
+      bar.appendChild(badge);
+    }
+    if (state.dates && state.dates.length) {
+      bar.appendChild(chipEl("📅 " + state.dates.map((d) => d.slice(5)).join(", ")));
+    }
+    if (state.divisions && state.divisions.length) {
+      bar.appendChild(chipEl("🏛 " + state.divisions.join(", ")));
+    }
+    if (state.authors && state.authors.length) {
+      bar.appendChild(chipEl("👤 " + state.authors.join(", ")));
+    }
+    if (state.sessionTypes && state.sessionTypes.length) {
+      bar.appendChild(chipEl("📋 " + state.sessionTypes.join(", ")));
+    }
+    if (state.keyword && state.keyword.trim()) {
+      bar.appendChild(chipEl("🔍 \"" + state.keyword.trim() + "\""));
+    }
+    const count = el("span", "summary-count", totalCount + " session" + (totalCount === 1 ? "" : "s"));
+    bar.appendChild(count);
+  }
+
+  NS.render = { renderMain, renderFilterSummary };
 })(typeof window !== "undefined" ? window : globalThis);
