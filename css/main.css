@@ -362,3 +362,13 @@ html, body {
   cursor: pointer;
 }
 .preset-action:hover { color: var(--text); }
+.reset-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.reset-btn:hover { color: var(--text); border-color: var(--muted); }

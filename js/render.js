@@ -326,6 +326,31 @@
     return section;
   }
 
+  function formatAgo(ms) {
+    if (!ms) return "";
+    const diff = Date.now() - ms;
+    if (diff < 2000) return "just now";
+    if (diff < 60000) return Math.floor(diff / 1000) + "s ago";
+    if (diff < 3600000) return Math.floor(diff / 60000) + "m ago";
+    return Math.floor(diff / 3600000) + "h ago";
+  }
+
+  function sidebarFooter() {
+    const footer = el("div", "sidebar-footer");
+    const status = el("span", null, "");
+    const saved = window.MPSA_APP.getLastSavedAt();
+    status.innerHTML = '<span style="color: var(--ok)">✓</span> Auto-saved ' + formatAgo(saved);
+    footer.appendChild(status);
+
+    const reset = el("button", "reset-btn", "Reset all");
+    reset.addEventListener("click", () => {
+      window.MPSA_APP.setActivePresetId(null);
+      window.MPSA_APP.setState(NS.filters.emptyState());
+    });
+    footer.appendChild(reset);
+    return footer;
+  }
+
   function presetsSection(state, presets, activePresetId) {
     const section = sectionEl("💾 Saved Views");
     const list = el("div", "preset-list");
@@ -415,6 +440,7 @@
     sidebar.appendChild(divisionFilterSection(program, state));
     sidebar.appendChild(keywordFilterSection(state));
     sidebar.appendChild(sessionTypeFilterSection(program, state));
+    sidebar.appendChild(sidebarFooter());
   }
 
   function renderFilterSummary(state, totalCount, activePresetName) {
