@@ -280,5 +280,64 @@ class ParseSessionLectureTest(unittest.TestCase):
         self.assertIn("lotte andersen", names)
 
 
+class BuildProgramTest(unittest.TestCase):
+    """Tests for the top-level program structure builder."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Parse the fixture twice with different dates to exercise multi-day logic
+        html = FIXTURE.read_text(encoding="utf-8")
+        s1 = parse_session(html)  # date from HTML: 2026-04-23
+        # Hand-fabricate a second session with a different date / division / type
+        s2 = {
+            **s1,
+            "id": "9999999",
+            "date": "2026-04-25",
+            "division": "99. Fake Division for Testing",
+            "session_type": "Roundtable",
+        }
+        cls.sessions = [s1, s2]
+        from parse_mpsa import build_program
+        cls.prog = build_program(cls.sessions)
+
+    def test_has_meta(self):
+        self.assertIn("meta", self.prog)
+        self.assertEqual(self.prog["meta"]["conference"], "MPSA 2026")
+
+    def test_generated_at_is_iso8601_utc(self):
+        ts = self.prog["meta"]["generated_at"]
+        # Must parse; must end with +00:00 or Z
+        self.assertRegex(ts, r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+        self.assertTrue(ts.endswith("+00:00") or ts.endswith("Z"))
+
+    def test_days_sorted_unique(self):
+        self.assertEqual(self.prog["meta"]["days"], ["2026-04-23", "2026-04-25"])
+
+    def test_divisions_sorted_unique(self):
+        divs = self.prog["divisions"]
+        self.assertEqual(divs, sorted(set(divs)))
+        self.assertIn("02. Representation & Electoral Systems", divs)
+        self.assertIn("99. Fake Division for Testing", divs)
+
+    def test_session_types_sorted_unique(self):
+        types = self.prog["session_types"]
+        self.assertEqual(types, sorted(set(types)))
+        self.assertIn("Paper Session", types)
+        self.assertIn("Roundtable", types)
+
+    def test_sessions_pass_through_unchanged(self):
+        self.assertEqual(len(self.prog["sessions"]), 2)
+        self.assertIs(self.prog["sessions"][0], self.sessions[0])
+
+    def test_build_program_empty_list(self):
+        from parse_mpsa import build_program
+        empty = build_program([])
+        self.assertEqual(empty["meta"]["days"], [])
+        self.assertEqual(empty["divisions"], [])
+        self.assertEqual(empty["session_types"], [])
+        self.assertEqual(empty["sessions"], [])
+        self.assertEqual(empty["meta"]["conference"], "MPSA 2026")
+
+
 if __name__ == "__main__":
     unittest.main()

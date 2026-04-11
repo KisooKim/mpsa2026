@@ -7,6 +7,7 @@ Usage:
 """
 
 import re
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup, NavigableString
 
 # ---------------------------------------------------------------------------
@@ -457,3 +458,23 @@ def parse_session(detail_html: str) -> dict:
     }
     session_dict["all_people"] = _collect_all_people(session_dict)
     return session_dict
+
+
+# ---------------------------------------------------------------------------
+# Top-level program structure builder
+# ---------------------------------------------------------------------------
+def build_program(sessions: list) -> dict:
+    """Assemble the top-level program.json structure from parsed sessions."""
+    days = sorted({s["date"] for s in sessions if s.get("date")})
+    divisions = sorted({s["division"] for s in sessions if s.get("division")})
+    session_types = sorted({s["session_type"] for s in sessions if s.get("session_type")})
+    return {
+        "meta": {
+            "conference": "MPSA 2026",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "days": days,
+        },
+        "divisions": divisions,
+        "session_types": session_types,
+        "sessions": sessions,
+    }
