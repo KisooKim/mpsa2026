@@ -234,12 +234,53 @@
     return section;
   }
 
+  function sessionTypeFilterSection(program, state) {
+    const section = sectionEl("Session Type");
+    const counts = countByField(program, "session_type");
+    for (const t of program.session_types || []) {
+      const row = el("label", "check-row");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = (state.sessionTypes || []).includes(t);
+      cb.addEventListener("change", () => {
+        const current = new Set(window.MPSA_APP.getState().sessionTypes || []);
+        if (cb.checked) current.add(t); else current.delete(t);
+        window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), sessionTypes: Array.from(current).sort() });
+      });
+      row.appendChild(cb);
+      row.appendChild(document.createTextNode(" " + t));
+      if (counts[t]) row.appendChild(el("span", "count", String(counts[t])));
+      section.appendChild(row);
+    }
+    return section;
+  }
+
+  function keywordFilterSection(state) {
+    const section = sectionEl("Topic / Keyword");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sidebar-search";
+    input.placeholder = "e.g. democracy populism";
+    input.value = state.keyword || "";
+    let t = null;
+    input.addEventListener("input", () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), keyword: input.value });
+      }, 120);
+    });
+    section.appendChild(input);
+    return section;
+  }
+
   function renderSidebar(program, state /*, presets, activePresetId */) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
     sidebar.innerHTML = "";
     sidebar.appendChild(dateFilterSection(program, state));
     sidebar.appendChild(divisionFilterSection(program, state));
+    sidebar.appendChild(keywordFilterSection(state));
+    sidebar.appendChild(sessionTypeFilterSection(program, state));
   }
 
   function renderFilterSummary(state, totalCount, activePresetName) {
