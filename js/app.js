@@ -24,13 +24,28 @@
   }
 
   function refresh() {
+    // Partial update on every filter change — re-renders the main content,
+    // filter summary bar, and the dynamic sidebar regions (Saved Views + footer).
+    // The filter checkbox sections are NOT re-rendered, so scroll position and
+    // keyword-input focus survive.
     if (!PROGRAM) return;
     const filtered = PROGRAM.sessions.filter((s) => MPSA.filters.matches(s, STATE));
     MPSA.render.renderMain(filtered, STATE);
     MPSA.render.renderFilterSummary(STATE, filtered.length, getActivePresetName());
+    if (MPSA.render.updateSidebarDynamic) {
+      MPSA.render.updateSidebarDynamic(STATE, MPSA.storage.listPresets(), ACTIVE_PRESET_ID);
+    }
+  }
+
+  function refreshAll() {
+    // Full rebuild: used on initial load and whenever filter state is changed
+    // from outside the sidebar (load preset, reset all). The filter checkboxes
+    // need to re-render to reflect the new state, so scroll reset is acceptable.
+    if (!PROGRAM) return;
     if (MPSA.render.renderSidebar) {
       MPSA.render.renderSidebar(PROGRAM, STATE, MPSA.storage.listPresets(), ACTIVE_PRESET_ID);
     }
+    refresh();
   }
 
   function onFiltersChanged() {
@@ -72,10 +87,22 @@
       MPSA.storage.saveActivePresetId(preset.id);
       LAST_SAVED_AT = Date.now();
       SAVED_PRESET_SNAPSHOT = JSON.parse(JSON.stringify(preset.filters));
-      refresh();
+      // Full sidebar rebuild — filter checkbox states need to reflect the
+      // new preset state since the user didn't click the checkboxes directly.
+      refreshAll();
+    },
+    resetAll: () => {
+      STATE = MPSA.filters.emptyState();
+      ACTIVE_PRESET_ID = null;
+      MPSA.storage.saveFilters(STATE);
+      MPSA.storage.saveActivePresetId(null);
+      LAST_SAVED_AT = Date.now();
+      SAVED_PRESET_SNAPSHOT = null;
+      refreshAll();
     },
     getLastSavedAt: () => LAST_SAVED_AT,
     refresh,
+    refreshAll,
   };
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -91,6 +118,6 @@
       return;
     }
     snapshotForActive();
-    refresh();
+    refreshAll();
   });
 })();

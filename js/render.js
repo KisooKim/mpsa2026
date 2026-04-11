@@ -333,6 +333,7 @@
 
   function sidebarFooter() {
     const footer = el("div", "sidebar-footer");
+    footer.id = "sidebar-footer";
     const status = el("span", null, "");
     const saved = window.MPSA_APP.getLastSavedAt();
     status.innerHTML = '<span style="color: var(--ok)">✓</span> Auto-saved ' + formatAgo(saved);
@@ -340,8 +341,7 @@
 
     const reset = el("button", "reset-btn", "Reset all");
     reset.addEventListener("click", () => {
-      window.MPSA_APP.setActivePresetId(null);
-      window.MPSA_APP.setState(NS.filters.emptyState());
+      window.MPSA_APP.resetAll();
     });
     footer.appendChild(reset);
     return footer;
@@ -349,6 +349,7 @@
 
   function presetsSection(state, presets, activePresetId) {
     const section = sectionEl("💾 Saved Views");
+    section.id = "sidebar-presets-section";
     const list = el("div", "preset-list");
     if (presets.length === 0) {
       list.appendChild(el("div", "preset-empty", "No saved views yet"));
@@ -428,6 +429,7 @@
   function renderSidebar(program, state, presets, activePresetId) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
+    const prevScroll = sidebar.scrollTop;
     sidebar.innerHTML = "";
     sidebar.appendChild(presetsSection(state, presets || [], activePresetId));
     sidebar.appendChild(dateFilterSection(program, state));
@@ -436,6 +438,24 @@
     sidebar.appendChild(keywordFilterSection(state));
     sidebar.appendChild(sessionTypeFilterSection(program, state));
     sidebar.appendChild(sidebarFooter());
+    sidebar.scrollTop = prevScroll;
+  }
+
+  // Partial update: swap only the Saved Views section + footer in place.
+  // Called from refresh() on every filter change. The filter checkbox sections
+  // are intentionally left alone so that scroll position, input focus, and
+  // keyboard selection survive across state updates.
+  function updateSidebarDynamic(state, presets, activePresetId) {
+    const presetsEl = document.getElementById("sidebar-presets-section");
+    if (presetsEl && presetsEl.parentNode) {
+      const next = presetsSection(state, presets || [], activePresetId);
+      presetsEl.parentNode.replaceChild(next, presetsEl);
+    }
+    const footerEl = document.getElementById("sidebar-footer");
+    if (footerEl && footerEl.parentNode) {
+      const next = sidebarFooter();
+      footerEl.parentNode.replaceChild(next, footerEl);
+    }
   }
 
   function renderFilterSummary(state, totalCount, activePresetName) {
@@ -467,5 +487,5 @@
     bar.appendChild(count);
   }
 
-  NS.render = { renderMain, renderFilterSummary, renderSidebar };
+  NS.render = { renderMain, renderFilterSummary, renderSidebar, updateSidebarDynamic };
 })(typeof window !== "undefined" ? window : globalThis);
