@@ -1,219 +1,405 @@
-# MPSA HTML Parser — Observed Structure (from day1-2026-04-23.html)
+# MPSA HTML Parser — Observed Structure
 
-Investigated: `raw_html/day1-2026-04-23.html` (409,793 bytes, ~274 lines — mostly one large blob)
-Tool: Python 3 + BeautifulSoup (lxml parser)
-Date of investigation: 2026-04-11
+**NOTE:** This supersedes the earlier listing-based investigation (which covered `raw_html/day*.html` "Browse by Day" pages and could only extract shallow session metadata). The parser for Task 3 reads `raw_html/details/session_{id}.html` detail pages, which are bulk-fetched via `scripts/fetch_details.py`. These contain the full data: chair, discussants, papers, and authors with affiliations.
 
----
-
-## Source Page Type
-
-The raw HTML files are **"Browse by Day" listing pages** from the allacademic platform
-(`cmd=Online+Program+View+Selected+Day+Submissions`). They contain **session summaries only**.
-
-**Fields available in these listing pages:**
-- Session ID (numeric, in the `id` attribute)
-- Date (implicit from the page / time-slot headers)
-- Time range (start + end)
-- Room/location (all show "TBA" in the current dump — rooms not yet assigned)
-- Session title
-- Division/Section
-- Session submission type
-
-**Fields NOT available in the listing pages (require separate detail page fetches):**
-- Chair(s) and co-chair(s)
-- Discussant(s)
-- Papers (titles, authors, affiliations)
-
-This is an important constraint for Task 3. The parser will only be able to populate the
-session-level summary fields from these files. `chair`, `co_chair`, `discussant`, and `papers`
-will be empty arrays unless a second scrape of individual session detail pages is performed.
+Investigation date: 2026-04-11
+Sessions examined: 2315178, 2306163, 2314926, 2336381, 2307566, 2315885, 2306790, 2308570, 2322203, 2322919, 2324104, 2321869, 2324108, 2322329; full-corpus h4 pattern scan across all 1099 files.
 
 ---
 
-## Session Count
+## Detail page overall shape
 
-| File | Sessions |
-|------|----------|
-| day1-2026-04-23.html | 298 |
-| day2-2026-04-24.html | 363 |
-
----
-
-## Overall Page Structure
-
-The 298 sessions live in a single `<ul data-role="listview" class="ui-listview">` (the 5th `<ul>` 
-in the document). This UL has 309 direct `<li>` children:
-- 1 list-divider LI: the day header ("Thursday, April 23, 2026 CDT")
-- 10 static LIs: time-slot headers ("Thursday, April 23, 8:00am CDT ...")
-- 298 session LIs: `<li class="ui-li-has-alt">`
+- File is a full jQuery-Mobile HTML document (~23 KB), one per session.
+- Most of the body is navigation scaffolding; the session-specific content sits inside a nested div path:
+  - Outer container: second `<div data-role="content">` (there are always exactly 2; the first is empty navigation)
+  - Inner container: `<div class="undefined">` — the direct child of the outer content div
+- **Main container selector (two-step):**
+  ```python
+  content_divs = soup.find_all('div', attrs={'data-role': 'content'})
+  main_inner = content_divs[-1].find('div', class_='undefined')
+  ```
+  Confirmed across all 1099 files: every session has exactly 2 `data-role="content"` divs, and the last one always contains a `class="undefined"` div.
 
 ---
 
-## Session Container
-
-**Primary selector:** `div.ui-grid-a[id^="session_"]`
-
-- One per session; the `id` and `name` attributes both hold the official session ID string
-  in the form `session_NNNNNNN` (e.g., `session_2315178`).
-- Also present: a paired `<div id="session_result_NNNNNNN">` (always empty in the listing page).
-- The `div.ui-grid-a` is nested inside `<a class="ul-li-has-alt-left ui-btn">` which is
-  inside `<li class="ui-li-has-alt">`.
-- All session fields (title, division, type) are `<p>` siblings of the `div.ui-grid-a`,
-  also inside the same `<a>` tag.
-
-**ID extraction:**
-```python
-session_div = soup.select_one('div.ui-grid-a[id^="session_"]')
-full_id   = session_div['id']            # "session_2315178"
-numeric_id = full_id.replace('session_', '')  # "2315178"
-```
-
-**To iterate all sessions:**
-```python
-sessions = soup.select('div.ui-grid-a[id^="session_"]')
-# len(sessions) == 298 for day1
-```
-
----
-
-## Session Fields
+## Session-level fields
 
 ### Session ID
-- **Location:** `id` attribute of `div.ui-grid-a`
-- **Format:** `session_NNNNNNN` (strip prefix to get numeric ID)
-- **Example:** `id="session_2315178"` → numeric ID `2315178`
-- **Also in:** `name` attribute of same div; `session_id` attribute of the second `<a>` in the LI
 
-### Date / Time Range
-- **Container:** `div.ui-block-a` (inside `div.ui-grid-a`)
-- **Selector:** `div.ui-grid-a .ui-block-a p[style]`
-  (second `<p>` — the first `<p>` is empty)
-- **Format:** `"H:MM to H:MMam/pm CDT (H:MM to H:MMam/pm GMT-0600)"`
-- **Examples from day 1:**
-  - `"8:00 to 9:30am CDT (7:00 to 8:30am GMT-0600)"`
-  - `"9:50 to 11:20am CDT (8:50 to 10:20am GMT-0600)"`
-  - `"11:40am to 1:10pm CDT (10:40am to 12:10pm GMT-0600)"`
-  - `"12:00 to 2:30pm CDT (11:00am to 1:30pm GMT-0600)"`
-  - `"8:00am to 6:30pm CDT (7:00am to 5:30pm GMT-0600)"` ← Meeting/Reception edge case
-- **Note:** The start and end times can span am/pm boundary. The format is inconsistent —
-  sometimes both have am/pm, sometimes only the end does. Parse with regex, not strptime.
-- **13 unique time strings** in day1.
+Two reliable sources, in order of preference:
 
-**Parsing hint:**
-```python
-time_text = session_div.select_one('.ui-block-a p[style]').get_text(strip=True)
-# e.g. "8:00 to 9:30am CDT (7:00 to 8:30am GMT-0600)"
-# Strip the GMT parenthetical: time_text.split('(')[0].strip()
-# → "8:00 to 9:30am CDT"
-```
+1. **Filename** (`session_NNNNNN.html`): always present, no parsing required.
+   ```python
+   session_id = filename.replace('session_', '').replace('.html', '')
+   ```
+2. **Direct-link `<input>` value** inside the page:
+   ```html
+   <input type="text" value="https://convention2.allacademic.com/one/mpsa/mpsa26/online_program_direct_link/view_session/2315178/"/>
+   ```
+   Extract with:
+   ```python
+   for inp in soup.find_all('input'):
+       if 'view_session' in inp.get('value', ''):
+           session_id = inp['value'].rstrip('/').rsplit('/', 1)[-1]
+   ```
+   This input has no `name`, `id`, or `data-role` attribute; match by `value` content.
 
-### Room / Location
-- **Container:** `div.ui-block-b` (inside `div.ui-grid-a`)
-- **Selector:** `div.ui-grid-a .ui-block-b p[style]`
-- **Example:** `"TBA"` (all 298 sessions in day1 show "TBA" — rooms not yet assigned in this dump)
-- **Expected future format** (based on allacademic convention): hotel room name string
+**Recommendation:** use the filename — it is simpler and guaranteed correct since `fetch_details.py` names files by session ID.
 
-### Session Title
-- **Selector:** Inside the parent `<a>` tag, the `<p style="white-space: normal;">` that
-  contains a `<strong>` tag **without** the labels "Section:" or "Session Submission Type:"
-- **Content:** The `<strong>` tag wraps the entire title text; there is no trailing text outside the strong.
-- **Example:** `<p style="white-space: normal;"><strong>Electoral Accountability and Public Opinion Research</strong></p>`
+---
+
+### Title
+
+- **Selector:** the single `<h3>` element anywhere in the document.
+- Every session has exactly one `<h3>` (confirmed across all 1099); no disambiguation needed.
+- It is a direct child of `main_inner`.
 - **Extraction:**
   ```python
-  parent_a = session_div.find_parent('a')
-  for p in parent_a.find_all('p', style=lambda v: v and 'white-space' in v):
-      strong = p.find('strong')
-      if strong and 'Section:' not in p.get_text() and 'Session Submission Type:' not in p.get_text():
-          title = strong.get_text(strip=True)
-          break
+  title = main_inner.find('h3').get_text(strip=True)
   ```
+- **Example:** `'Electoral Accountability and Public Opinion Research'`
+- **Note:** Titles sometimes contain a numeric prefix (poster sessions): `'75-303 - Poster Session: How Do Authoritarian Governments...'`. Store as-is.
 
-### Division (Section)
-- **Selector:** `<p>` inside the parent `<a>` whose text contains `"Section:"`
-- **Structure:** `<p style="white-space: normal;"><strong>Section: </strong>TEXT</p>`
-  where TEXT is the NavigableString sibling after `<strong>`.
-- **Format:** `"NN. Division Name"` (2-digit number + period + name)
-- **Example:** `"02. Representation & Electoral Systems"`, `"29. (Post) Communist Countries"`
+---
+
+### Date / Time / Room
+
+- **Selector:** the `<strong>` element that is a **direct child** of `main_inner` (not nested inside a `<li>` or `<div>`).
+- It is always the first direct-child `<strong>` of `main_inner`.
 - **Extraction:**
   ```python
-  for p in parent_a.find_all('p'):
-      if 'Section:' in p.get_text():
-          strong = p.find('strong')
-          division = str(strong.next_sibling).strip()  # e.g. "02. Representation & Electoral Systems"
+  for child in main_inner.children:
+      if getattr(child, 'name', None) == 'strong':
+          datetime_str = child.get_text(strip=True)
           break
   ```
+- **Format:** `"DayOfWeek, Month DayNum, H:MM[am|pm] to H:MM[am|pm] TZ (H:MM[am|pm] to H:MM[am|pm] TZ), Room"`
+- **Example:** `"Thu, April 23, 8:00 to 9:30am CDT (8:00 to 9:30am CDT), TBA"`
+- **All 1099 sessions** have room = `"TBA"` in this dump (rooms not yet assigned).
+- **Recommended parsing regex:**
+  ```python
+  import re
+  pattern = r'^(\w+, \w+ \d+), (\d+:\d+(?:am|pm)?) to (\d+:\d+(?:am|pm)) (\w+) \(.*?\), (.+)$'
+  m = re.match(pattern, datetime_str)
+  date   = m.group(1)   # e.g. "Thu, April 23"
+  start  = m.group(2)   # e.g. "8:00" (no am/pm when same period as end) or "11:40am"
+  end    = m.group(3)   # e.g. "9:30am" or "1:10pm" — always has am/pm
+  tz     = m.group(4)   # "CDT"
+  room   = m.group(5)   # "TBA"
+  ```
+- **Anomaly:** When start and end times are in the same am/pm period, the start time omits the am/pm suffix (e.g., `"8:00 to 9:30am"` — start is 8:00 AM). The regex above handles this (`(?:am|pm)?`).
+
+---
 
 ### Session Type
-- **Selector:** `<p>` inside the parent `<a>` whose text contains `"Session Submission Type:"`
-- **Structure:** `<p style="white-space: normal;"><strong>Session Submission Type: </strong>TEXT</p>`
-- **Values seen in day1:** `Paper Session` (232), `Complete Panel` (23), `Roundtable` (20),
-  `Lightning Talk` (18), `Meeting/Reception` (4), `Working Groups` (1)
-- **Example:** `"Paper Session"`, `"Roundtable"`
+
+- **Selector:** the `<p style="white-space: normal;">` inside `main_inner` whose text contains `"Session Submission Type:"`.
+- **Structure:** `<p style="white-space: normal;"><strong>Session Submission Type: </strong>TypeValue</p>`
 - **Extraction:**
   ```python
-  for p in parent_a.find_all('p'):
+  for p in main_inner.find_all('p', style=lambda s: s and 'white-space' in s):
       if 'Session Submission Type:' in p.get_text():
           strong = p.find('strong')
-          session_type = str(strong.next_sibling).strip()
+          session_type = p.get_text(strip=True).replace(strong.get_text(strip=True), '').strip()
           break
   ```
+- **All values observed across 1099 sessions:**
+
+  | Type | Count |
+  |------|-------|
+  | Paper Session | 803 |
+  | Roundtable | 72 |
+  | Complete Panel | 69 |
+  | Poster Session | 67 |
+  | Lightning Talk | 57 |
+  | Meeting/Reception | 19 |
+  | Working Groups | 11 |
+  | Lecture | 1 |
 
 ---
 
-## Participants (Chair, Co-chair, Discussant)
+### Division (Section)
 
-**Not available in the listing pages.** These fields are only present on individual session
-detail pages (`cmd=Online+Program+View+Session&selected_session_id=NNNNNNN`).
+- **Selector:** `<h4>Section</h4>` followed immediately by `<ul data-role="listview">` → `<li>` → `<a>` → `<p>` → `<strong>`.
+- **Extraction:**
+  ```python
+  section_h4 = main_inner.find('h4', string='Section')
+  section_ul  = section_h4.find_next_sibling('ul')
+  division    = section_ul.find('strong').get_text(strip=True)
+  ```
+- **Example:** `"02. Representation & Electoral Systems"`, `"29. (Post) Communist Countries"`
+- **Format:** `"NN. Name"` (2-digit section number, period, section name).
 
-The parser should emit empty arrays for these fields:
-```json
-"chair": [],
-"co_chair": [],
-"discussant": []
+### Cosponsor(s)
+
+- **Selector:** `<h4>Cosponsor</h4>` or `<h4>Cosponsors</h4>` (check for both), same structure as Section.
+- Only present in a subset of sessions (those with cross-listed cosponsors).
+- **Extraction:** same pattern as Section → `find_next_sibling('ul').find_all('strong')` for multi-cosponsor case.
+- **Example:** `"01. Program Chairs"`, `"32. Comparative Political Economy"`
+
+---
+
+## Participant fields
+
+Each participant section follows the pattern:
+```
+<h4>RoleLabel</h4>
+<ul data-role="listview">
+  <li>...<a ...><[optional time div]><p><i>First</i> <i>Last</i>, Affiliation</p></a></li>
+  ...
+</ul>
+```
+
+### Role labels observed (all 33 distinct h4 patterns scanned)
+
+| h4 Text | Notes |
+|---------|-------|
+| `Chair` | Single chair; most common |
+| `Chairs` | Plural form used in Lightning Talk sessions with 2 chairs |
+| `Participant` | Singular (rare; roundtables) |
+| `Participants` | Plural (roundtables) |
+| `Discussant` | Singular |
+| `Discussants` | Plural |
+| `Coordinator` | Used in Working Group sessions |
+| `Coordinators` | Plural form |
+| `Lecturer` | Used in Lecture sessions |
+
+**The parser must match role labels case-sensitively** and handle both singular and plural forms.
+
+### Person `<li>` structure — two variants
+
+**Variant A — with timestamp div** (Paper Sessions, Complete Panels):
+```html
+<li>
+  <a href="...">
+    <div style="vertical-align: middle; float:left; padding-right: 5px;">
+      <p><strong>8:00am</strong> |</p>
+    </div>
+    <p style="white-space: normal;"><i>Shahana</i> <i>Sheikh</i>, University of Pennsylvania</p>
+  </a>
+</li>
+```
+
+**Variant B — no timestamp div** (Roundtables, Poster Sessions, some others):
+```html
+<li>
+  <a href="...">
+    <p style="white-space: normal;"><i>Jennifer</i> <i>Holmquist</i>, Alamo Colleges, Northeast Lakeview College</p>
+  </a>
+</li>
+```
+
+**Person extraction (handles both variants):**
+```python
+def extract_person(li):
+    # The person-data p is the one with style="white-space: normal;" containing <i> tags
+    person_p = li.find('p', style=lambda s: s and 'white-space' in s)
+    if not person_p:
+        return None
+    i_tags = person_p.find_all('i')
+    if not i_tags:
+        return None
+    # Name: join all <i> text with spaces, stripping trailing commas from any token
+    name = ' '.join(i.get_text(strip=True).rstrip(',') for i in i_tags)
+    # Affiliation: text after the last </i> tag
+    last_i = i_tags[-1]
+    after = last_i.next_sibling
+    affiliation = ''
+    if after and isinstance(after, str):
+        affiliation = after.strip().lstrip(',').strip()
+    return {'name': name, 'affiliation': affiliation}
+```
+
+**Name anomalies to handle:**
+- Middle names / initials: `<i>Tevfik Murat</i> <i>Yildirim</i>` — first `<i>` can contain multiple words (first + middle).
+- Middle names as separate `<i>`: `<i>Adam</i> <i>J.</i> <i>Berinsky</i>` — join all three.
+- Trailing comma inside an `<i>`: `<i>Phadnis,</i>` — strip with `.rstrip(',')`.
+- Triplicate bug: `<i>Ajit</i> <i>Phadnis,</i> <i>Phadnis</i>` — this is a data-quality issue (duplicated surname), not a structural variant. The parser should store whatever the HTML says.
+
+---
+
+## Papers (Individual Presentations)
+
+### Section header
+
+- `<h4>Individual Presentations</h4>` — used for all session types including Poster Session and Lightning Talk.
+
+### Paper `<li>` structure
+
+**Variant A — with timestamp** (most Paper Sessions, Complete Panels):
+```html
+<li>
+  <a href="https://...?cmd=Online+Program+View+Paper&selected_paper_id=2307495&...">
+    <div style="vertical-align: middle; float:left; padding-right: 5px;">
+      <p><strong>8:05am</strong> |</p>
+    </div>
+    <p style="white-space: normal;">
+      <strong>Paper Title Here</strong> - <i>First</i> <i>Last</i>, Affiliation; <i>First2</i> <i>Last2</i>, Affiliation2
+    </p>
+  </a>
+</li>
+```
+
+**Variant B — no timestamp** (Poster Sessions; 67 sessions confirmed):
+```html
+<li>
+  <a href="https://...?cmd=Online+Program+View+Paper&selected_paper_id=2319851&...">
+    <p style="white-space: normal;">
+      <strong>35. Paper Title Here</strong> - <i>First</i> <i>Last</i>, Affiliation
+    </p>
+  </a>
+</li>
+```
+Note: Poster session paper titles are prefixed with a numeric ordinal (e.g., `"35. Title"`).
+
+### Paper extraction algorithm
+
+```python
+def extract_paper(li):
+    paper_p = li.find('p', style=lambda s: s and 'white-space' in s)
+    if not paper_p:
+        return None
+
+    # Paper ID from the href
+    a_tag = li.find('a', href=True)
+    href = a_tag['href'] if a_tag else ''
+    paper_id = None
+    import re
+    m = re.search(r'selected_paper_id=(\d+)', href)
+    if m:
+        paper_id = m.group(1)
+
+    strong = paper_p.find('strong')
+    title = strong.get_text(strip=True) if strong else ''
+
+    # Authors come after the <strong> tag, separated by ' - ' from the title
+    # then individual authors separated by '; '
+    # Within each author entry: <i>First</i> <i>Last</i>, Affiliation
+    authors = []
+    # Collect all text/tag nodes after the <strong>
+    after_strong = []
+    for node in strong.next_siblings:
+        after_strong.append(node)
+
+    # Reconstruct the raw HTML of the author section and parse it
+    # Strategy: find all <i> tags in paper_p AFTER the strong
+    i_tags_in_p = paper_p.find_all('i')
+
+    # Split author block on '; ' boundaries
+    # Walk node by node, grouping <i> runs into author records
+    current_name_parts = []
+    current_after_text = ''
+    all_authors = []
+
+    for node in strong.next_siblings:
+        if getattr(node, 'name', None) == 'i':
+            if current_after_text.strip().rstrip(';').strip():
+                # We hit a ';' separator — commit previous author
+                if current_name_parts:
+                    aff = current_after_text.strip().lstrip(',').strip().rstrip(';').strip()
+                    all_authors.append({'name': ' '.join(p.rstrip(',') for p in current_name_parts), 'affiliation': aff})
+                current_name_parts = []
+                current_after_text = ''
+            current_name_parts.append(node.get_text(strip=True).rstrip(','))
+        elif isinstance(node, str):
+            current_after_text += node
+
+    # Commit last author
+    if current_name_parts:
+        aff = current_after_text.strip().lstrip(',').strip()
+        all_authors.append({'name': ' '.join(p.rstrip(',') for p in current_name_parts), 'affiliation': aff})
+
+    return {'paper_id': paper_id, 'title': title, 'authors': all_authors}
+```
+
+**Multiple authors separator:** `'; '` (semicolon + space) between author entries within the same `<p>` tag. Some papers have 4+ authors.
+
+**Multi-name boundary detection:** after the `' - '` separator following `<strong>`, text nodes of `'; '` delineate author boundaries; `<i>` tags belong to the next author name.
+
+---
+
+## Brief Overview section
+
+- Present in 64 of 1099 sessions (mainly Roundtables and special meetings).
+- Structure: `<h4>Brief Overview</h4><blockquote>Text...</blockquote>`
+- Text is plain (no inner tags observed).
+- Optional field; store as `brief_overview` string or `None`.
+
+---
+
+## Audience Participation section
+
+- Present in most Paper Session, Complete Panel, and Lightning Talk sessions.
+- Structure: `<h4>Audience Participation</h4><ul data-role="listview"><li>...<strong>Time</strong>|Audience participation will last for the remainder of the session.</li>`
+- The timestamp and description text are in the same `<li>` structure as papers.
+- This section does not represent a person or paper — it is informational only.
+- **Recommended:** parse the timestamp out as `audience_participation_start` or ignore entirely.
+
+---
+
+## h4 Section Header Reference
+
+All 33 distinct `<h4>` patterns observed in the corpus (sorted by frequency):
+
+```
+['Section', 'Chair', 'Individual Presentations', 'Discussants', 'Audience Participation']  -- most common
+['Section', 'Chair', 'Individual Presentations', 'Discussant', 'Audience Participation']
+['Section', 'Chair', 'Individual Presentations', 'Audience Participation']
+['Section', 'Individual Presentations', 'Discussants', 'Audience Participation']
+['Section', 'Individual Presentations', 'Discussant', 'Audience Participation']
+['Section', 'Individual Presentations', 'Audience Participation']
+['Brief Overview', 'Section', 'Chair', 'Individual Presentations', 'Discussants', 'Audience Participation']
+['Brief Overview', 'Section', 'Chair', 'Individual Presentations', 'Discussant', 'Audience Participation']
+['Brief Overview', 'Section', 'Chair', 'Individual Presentations', 'Audience Participation']
+['Brief Overview', 'Section', 'Chair', 'Participants']
+['Brief Overview', 'Section', 'Cosponsor', 'Chair', 'Participants']
+['Brief Overview', 'Section', 'Cosponsors', 'Chair', 'Participants']
+['Brief Overview', 'Section', 'Chair', 'Participant']
+['Brief Overview', 'Section', 'Participants']
+['Brief Overview', 'Section', 'Lecturer', 'Chair']
+['Brief Overview', 'Section', 'Participant', 'Coordinator']
+['Brief Overview', 'Section']
+['Section', 'Chair', 'Participants']
+['Section', 'Chair', 'Participant']
+['Section', 'Chairs']
+['Section', 'Chairs', 'Individual Presentations', 'Audience Participation']
+['Section', 'Cosponsor', 'Chair', 'Individual Presentations', 'Discussant', 'Audience Participation']
+['Section', 'Cosponsor', 'Chair', 'Individual Presentations', 'Discussants', 'Audience Participation']
+['Section', 'Cosponsors', 'Chair', 'Individual Presentations', 'Discussants', 'Audience Participation']
+['Section', 'Cosponsor', 'Individual Presentations', 'Discussant', 'Audience Participation']
+['Section', 'Cosponsors', 'Chair', 'Participants']
+['Section', 'Individual Presentations']
+['Section', 'Individual Presentations', 'Discussant']
+['Section', 'Individual Presentations', 'Discussants']
+['Section', 'Cosponsor']
+['Section', 'Participants', 'Coordinator']
+['Section', 'Participants', 'Coordinators']
+['Section']
 ```
 
 ---
 
-## Papers
+## Anomalies the parser must handle
 
-**Not available in the listing pages.** Papers (titles and authors) are only on detail pages.
+1. **Singular vs plural role labels.** `Chair` and `Chairs`, `Discussant` and `Discussants`, `Participant` and `Participants`, `Coordinator` and `Coordinators` all appear. Use case-insensitive prefix matching or an explicit allowlist: `{'chair', 'chairs', 'participant', 'participants', 'discussant', 'discussants', 'coordinator', 'coordinators', 'lecturer'}`.
 
-The parser should emit an empty array:
-```json
-"papers": []
-```
+2. **Timestamp div present/absent per-role.** Paper Session chairs have a timestamp div; Roundtable chairs do not. Individual Presentations in Poster Sessions (67 sessions) have no timestamp div. Person extraction must not depend on the timestamp div.
 
----
+3. **Malformed duplicate surname in `<i>` tags.** `<i>Ajit</i> <i>Phadnis,</i> <i>Phadnis</i>` — the comma inside `<i>Phadnis,</i>` is a data-quality artifact. Strip trailing commas from every `<i>` text token with `.rstrip(',')`.
 
-## Anomalies / Edge Cases
+4. **Multi-word first names inside a single `<i>`.** `<i>Tevfik Murat</i> <i>Yildirim</i>` — the first `<i>` contains first name + middle name as a single string. This is intentional formatting. Join all `<i>` tokens with spaces.
 
-1. **All rooms are "TBA"** in the current dump (day1 and day2 both confirmed). The room field
-   should be stored as-is; do not treat "TBA" as an error.
+5. **Author affiliation containing commas.** Affiliation text itself contains commas (e.g., `"University of Virginia, Main Campus"`, `"Alamo Colleges, Northeast Lakeview College"`). Do not split on commas to get affiliation — everything after the last `</i>` tag (with leading `, ` stripped) is the full affiliation string.
 
-2. **Inconsistent time format.** The start time sometimes omits am/pm when it shares the same
-   period as the end time (e.g., `"8:00 to 9:30am"` — start is 8:00 AM but `am` is omitted).
-   Parse with a regex that tolerates missing am/pm on the start token.
+6. **Missing Chair entirely.** 64+ sessions (all-text roundtables, meetings, empty-shell sessions) have no `<h4>Chair</h4>` at all. Emit `chair: []` when absent.
 
-3. **Special session types.** `Meeting/Reception` has an 8-hour span
-   (`"8:00am to 6:30pm CDT"`). `Working Groups` also appears. The parser should pass these
-   through as-is without special-casing.
+7. **Missing Individual Presentations entirely.** Sessions with only `Section` or `Section + Chair + Participants` structure have no papers. Emit `papers: []` when absent.
 
-4. **HTML attribute whitespace variation.** The time `<p>` uses `style="white-space:normal;"` 
-   (no space after colon) while room and other `<p>` elements use `style="white-space: normal;"` 
-   (space after colon). Use `lambda v: v and 'white-space' in v` rather than exact match.
+8. **Poster session paper titles prefixed with ordinals.** E.g., `"35. A Comparative Analysis of..."`. The prefix is part of the `<strong>` text. Store as-is; strip if a clean title is needed with `re.sub(r'^\d+\.\s*', '', title)`.
 
-5. **`session_result_NNNNNNN` paired div** is always empty in the listing page. Ignore it.
+9. **Non-ASCII characters in names and affiliations.** E.g., `Böhmelt`, `Søren`, `Etzerodt`. BeautifulSoup handles UTF-8 decoding automatically; no special handling needed.
 
-6. **Double URL** in href: the allacademic URLs use `//one/` (double slash). This is intentional
-   on their end. Do not normalize it.
-
-7. **HTML entity in division names.** E.g., `"29. (Post) Communist Countries"` and
-   `"51. Public Policy"` are clean, but section names like `"Assymetries, cooperation..."` appear.
-   BeautifulSoup handles entity decoding automatically (`&amp;` → `&`).
-
-8. **All 298 sessions in day1 have all 4 fields present** (id, time, room, title, division,
-   type) — no missing fields found in the full scan.
+10. **Session with only `<h4>Section</h4>`.** Meetings/Receptions and some special sessions (e.g., `"Separation of Powers: Breakfast"`) have no participants, papers, or overview at all. The parser should return empty collections without error.
 
 ---
 
@@ -221,25 +407,21 @@ The parser should emit an empty array:
 
 | Field | Selector / Method | Notes |
 |-------|------------------|-------|
-| Session container | `div.ui-grid-a[id^="session_"]` | 298 per day1 |
-| Session numeric ID | `div['id'].replace('session_', '')` | e.g. `"2315178"` |
-| Time range | `.ui-block-a p[style*="white-space"]` | CDT + GMT in parens |
-| Room | `.ui-block-b p[style*="white-space"]` | Currently all "TBA" |
-| Title | `parent_a > p > strong` (not Section/Type p) | strong wraps full title |
-| Division | `parent_a > p` containing `"Section:"` → strong.next_sibling | `"NN. Name"` format |
-| Session type | `parent_a > p` containing `"Session Submission Type:"` → strong.next_sibling | 6 values in day1 |
-| Chair | N/A — listing page only | Always `[]` |
-| Co-chair | N/A — listing page only | Always `[]` |
-| Discussant | N/A — listing page only | Always `[]` |
-| Papers | N/A — listing page only | Always `[]` |
-
----
-
-## Detail URL Pattern (for future second-pass scrape)
-
-```
-https://convention2.allacademic.com//one/mpsa/mpsa26/index.php?cmd=Online+Program+View+Session&selected_session_id=NNNNNNN&PHPSESSID=...
-```
-
-The `PHPSESSID` is session-specific and will differ per browser session. A second-pass scrape
-would need a valid session cookie and would need to visit 298 + 363 + ... URLs.
+| Main container | `soup.find_all('div', attrs={'data-role':'content'})[-1].find('div', class_='undefined')` | Always the last content div |
+| Session ID | filename `session_NNNNNN.html` | Or parse `<input>` `value` containing `view_session/` |
+| Title | `main_inner.find('h3').get_text(strip=True)` | Exactly one h3 per page |
+| Date/time/room | Direct-child `<strong>` of `main_inner` | Regex parse |
+| Session type | `<p>` with `'Session Submission Type:'` in text → text after `<strong>` | 8 distinct types |
+| Division | `main_inner.find('h4', string='Section')` → next-sibling `<ul>` → `find('strong').get_text()` | `"NN. Name"` format |
+| Cosponsor | `main_inner.find('h4', string=re.compile(r'Cosponsor'))` → same UL pattern | Optional; singular or plural |
+| Chair(s) | `main_inner.find('h4', string=re.compile(r'^Chairs?$'))` → next-sibling `<ul>` | Optional |
+| Participants | `main_inner.find('h4', string=re.compile(r'^Participants?$'))` → next-sibling `<ul>` | Roundtable role |
+| Discussant(s) | `main_inner.find('h4', string=re.compile(r'^Discussants?$'))` → next-sibling `<ul>` | Optional |
+| Coordinator(s) | `main_inner.find('h4', string=re.compile(r'^Coordinators?$'))` → next-sibling `<ul>` | Working Group role |
+| Lecturer | `main_inner.find('h4', string='Lecturer')` → next-sibling `<ul>` | Lecture sessions only |
+| Papers | `main_inner.find('h4', string='Individual Presentations')` → next-sibling `<ul>` → each `<li>` | Optional |
+| Paper ID | `<a href>` → `selected_paper_id=NNNNNN` in URL | Each paper `<li>` `<a>` |
+| Paper title | `<strong>` in paper `<p style="white-space: normal;">` | After any ordinal prefix |
+| Person name | Join `<i>.get_text().rstrip(',')` for all `<i>` in person `<p>` | Space-joined |
+| Affiliation | Text after last `</i>` in person `<p>`, strip leading `, ` | May contain commas |
+| Brief Overview | `main_inner.find('h4', string='Brief Overview')` → next sibling `<blockquote>` | Present in 64/1099 |
