@@ -46,6 +46,15 @@
     const card = el("div", "session-card");
     card.dataset.sessionId = session.id;
 
+    const isFav = window.MPSA_APP.isFavorite(session.id);
+    const star = el("button", "fav-star" + (isFav ? " on" : ""), isFav ? "★" : "☆");
+    star.title = isFav ? "Remove from favorites" : "Add to favorites";
+    star.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.MPSA_APP.toggleFavorite(session.id);
+    });
+    card.appendChild(star);
+
     const title = el("div", "session-title", session.title);
     card.appendChild(title);
 
@@ -96,7 +105,7 @@
     inner.appendChild(el("h2", null, "MPSA 2026 Program"));
     inner.appendChild(el("p", null, "Filter sessions by author, division, topic, or date to build your schedule."));
     const hint = el("div", "empty-hint");
-    hint.innerHTML = "<strong>← Pick filters in the sidebar.</strong><br>Save combinations you like as Saved Views.";
+    hint.innerHTML = "<strong>← Pick filters in the sidebar.</strong><br>★ sessions to build a favorites list, save combinations as Saved Views.";
     inner.appendChild(hint);
     wrap.appendChild(inner);
     container.appendChild(wrap);
@@ -159,6 +168,25 @@
   function sectionEl(title) {
     const section = el("section", "sidebar-section");
     section.appendChild(el("h4", null, title));
+    return section;
+  }
+
+  function favoritesFilterSection(state) {
+    const section = sectionEl("⭐ Favorites");
+    const row = el("label", "check-row");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!state.favoritesOnly;
+    cb.addEventListener("change", () => {
+      window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), favoritesOnly: cb.checked });
+    });
+    row.appendChild(cb);
+    row.appendChild(document.createTextNode(" Show favorites only"));
+    const count = window.MPSA_APP.getFavoritesCount();
+    if (count > 0) {
+      row.appendChild(el("span", "count", String(count)));
+    }
+    section.appendChild(row);
     return section;
   }
 
@@ -432,6 +460,7 @@
     const prevScroll = sidebar.scrollTop;
     sidebar.innerHTML = "";
     sidebar.appendChild(presetsSection(state, presets || [], activePresetId));
+    sidebar.appendChild(favoritesFilterSection(state));
     sidebar.appendChild(dateFilterSection(program, state));
     sidebar.appendChild(authorFilterSection(state));
     sidebar.appendChild(divisionFilterSection(program, state));
@@ -467,6 +496,9 @@
     if (activePresetName) {
       const badge = el("span", "summary-preset", "💾 " + activePresetName);
       bar.appendChild(badge);
+    }
+    if (state.favoritesOnly) {
+      bar.appendChild(chipEl("⭐ Favorites only"));
     }
     if (state.dates && state.dates.length) {
       bar.appendChild(chipEl("📅 " + state.dates.map((d) => d.slice(5)).join(", ")));

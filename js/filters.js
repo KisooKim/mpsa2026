@@ -2,7 +2,7 @@
   const NS = root.MPSA = root.MPSA || {};
 
   function emptyState() {
-    return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "" };
+    return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
   }
 
   function isEmpty(state) {
@@ -12,7 +12,8 @@
       (state.authors || []).length === 0 &&
       (state.divisions || []).length === 0 &&
       (state.sessionTypes || []).length === 0 &&
-      !(state.keyword && state.keyword.trim())
+      !(state.keyword && state.keyword.trim()) &&
+      !state.favoritesOnly
     );
   }
 
@@ -32,7 +33,8 @@
       eqArr(a.authors || [], b.authors || []) &&
       eqArr(a.divisions || [], b.divisions || []) &&
       eqArr(a.sessionTypes || [], b.sessionTypes || []) &&
-      (a.keyword || "") === (b.keyword || "")
+      (a.keyword || "") === (b.keyword || "") &&
+      (!!a.favoritesOnly) === (!!b.favoritesOnly)
     );
   }
 
@@ -87,13 +89,22 @@
     return true;
   }
 
-  function matches(session, state) {
+  // favorites is an optional Set<string> of session IDs. When state.favoritesOnly
+  // is true, only sessions whose id is in this Set pass the filter.
+  function matchesFavorites(session, state, favorites) {
+    if (!state.favoritesOnly) return true;
+    if (!favorites) return false;
+    return favorites.has(String(session.id));
+  }
+
+  function matches(session, state, favorites) {
     return (
       matchesDates(session, state) &&
       matchesDivisions(session, state) &&
       matchesSessionTypes(session, state) &&
       matchesAuthors(session, state) &&
-      matchesKeyword(session, state)
+      matchesKeyword(session, state) &&
+      matchesFavorites(session, state, favorites)
     );
   }
 

@@ -14,7 +14,7 @@ function load() {
   return sandbox.window.MPSA.filters;
 }
 
-const empty = { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "" };
+const empty = { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
 const s1 = program.sessions[0]; // Comparative, democracy/populism
 const s2 = program.sessions[1]; // American, voting
 const s3 = program.sessions[2]; // Roundtable Comparative 04-24
@@ -111,4 +111,36 @@ test("equals deep compare", () => {
   assert.equal(F.equals({ ...empty, dates: ["a"] }, { ...empty, dates: ["a"] }), true);
   assert.equal(F.equals({ ...empty, dates: ["a"] }, { ...empty, dates: ["b"] }), false);
   assert.equal(F.equals({ ...empty, keyword: "x" }, { ...empty, keyword: "y" }), false);
+  assert.equal(F.equals({ ...empty, favoritesOnly: true }, { ...empty, favoritesOnly: false }), false);
+  assert.equal(F.equals({ ...empty, favoritesOnly: true }, { ...empty, favoritesOnly: true }), true);
+});
+
+test("isEmpty treats favoritesOnly as a non-empty filter", () => {
+  const F = load();
+  assert.equal(F.isEmpty({ ...empty, favoritesOnly: true }), false);
+});
+
+test("matches with favoritesOnly=true requires session id in the favorites set", () => {
+  const F = load();
+  const favs = new Set(["s1"]);
+  // s1's id is "s1" in the fixture
+  assert.equal(F.matches(s1, { ...empty, favoritesOnly: true }, favs), true);
+  assert.equal(F.matches(s2, { ...empty, favoritesOnly: true }, favs), false);
+  // Without favoritesOnly, the set is ignored
+  assert.equal(F.matches(s2, empty, favs), true);
+});
+
+test("matches with favoritesOnly=true and null favorites returns false", () => {
+  const F = load();
+  assert.equal(F.matches(s1, { ...empty, favoritesOnly: true }, null), false);
+  assert.equal(F.matches(s1, { ...empty, favoritesOnly: true }, undefined), false);
+});
+
+test("matches combines favoritesOnly with other filters (AND)", () => {
+  const F = load();
+  const favs = new Set(["s1", "s2", "s3"]);
+  // s1 is date 2026-04-23, s3 is date 2026-04-24
+  const state = { ...empty, favoritesOnly: true, dates: ["2026-04-23"] };
+  assert.equal(F.matches(s1, state, favs), true);
+  assert.equal(F.matches(s3, state, favs), false);
 });

@@ -125,6 +125,7 @@ html, body {
   padding: 10px 12px;
   cursor: pointer;
   transition: background 0.1s;
+  position: relative;
 }
 .session-card:hover { background: #24262b; }
 .session-card.expanded { border-left-color: var(--accent-2); }
@@ -372,3 +373,22 @@ html, body {
   cursor: pointer;
 }
 .reset-btn:hover { color: var(--text); border-color: var(--muted); }
+
+.fav-star {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: color 0.1s, transform 0.1s;
+  z-index: 1;
+}
+.fav-star:hover { color: var(--tag-fg); transform: scale(1.15); }
+.fav-star.on { color: var(--tag-fg); }
+/* Reserve space so the title doesn't run into the star */
+.session-card .session-title { padding-right: 22px; }

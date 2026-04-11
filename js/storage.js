@@ -1,12 +1,13 @@
 (function (root) {
   const NS = root.MPSA = root.MPSA || {};
 
-  const KEY_FILTERS = "mpsa2026-filters";
-  const KEY_PRESETS = "mpsa2026-presets";
-  const KEY_ACTIVE  = "mpsa2026-active-preset";
+  const KEY_FILTERS   = "mpsa2026-filters";
+  const KEY_PRESETS   = "mpsa2026-presets";
+  const KEY_ACTIVE    = "mpsa2026-active-preset";
+  const KEY_FAVORITES = "mpsa2026-favorites";
 
   function emptyFilters() {
-    return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "" };
+    return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
   }
 
   function safeParse(raw, fallback) {
@@ -23,6 +24,7 @@
       divisions: Array.isArray(state.divisions) ? state.divisions : [],
       sessionTypes: Array.isArray(state.sessionTypes) ? state.sessionTypes : [],
       keyword: typeof state.keyword === "string" ? state.keyword : "",
+      favoritesOnly: state.favoritesOnly === true,
     };
   }
 
@@ -85,9 +87,32 @@
     else root.localStorage.setItem(KEY_ACTIVE, String(id));
   }
 
+  function loadFavorites() {
+    const arr = safeParse(root.localStorage.getItem(KEY_FAVORITES), []);
+    if (!Array.isArray(arr)) return new Set();
+    return new Set(arr.map(String));
+  }
+
+  function saveFavorites(set) {
+    root.localStorage.setItem(KEY_FAVORITES, JSON.stringify(Array.from(set)));
+  }
+
+  function isFavorite(set, sessionId) {
+    return set.has(String(sessionId));
+  }
+
+  function toggleFavorite(set, sessionId) {
+    const id = String(sessionId);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    saveFavorites(set);
+    return set.has(id);
+  }
+
   NS.storage = {
     emptyFilters, loadFilters, saveFilters,
     listPresets, savePreset, updatePreset, renamePreset, deletePreset,
     loadActivePresetId, saveActivePresetId,
+    loadFavorites, saveFavorites, isFavorite, toggleFavorite,
   };
 })(typeof window !== "undefined" ? window : globalThis);

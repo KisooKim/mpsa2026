@@ -5,6 +5,7 @@
   let ACTIVE_PRESET_ID = MPSA.storage.loadActivePresetId();
   let SAVED_PRESET_SNAPSHOT = null;
   let LAST_SAVED_AT = 0;
+  let FAVORITES = MPSA.storage.loadFavorites();
 
   function snapshotForActive() {
     if (!ACTIVE_PRESET_ID) { SAVED_PRESET_SNAPSHOT = null; return; }
@@ -29,7 +30,7 @@
     // The filter checkbox sections are NOT re-rendered, so scroll position and
     // keyword-input focus survive.
     if (!PROGRAM) return;
-    const filtered = PROGRAM.sessions.filter((s) => MPSA.filters.matches(s, STATE));
+    const filtered = PROGRAM.sessions.filter((s) => MPSA.filters.matches(s, STATE, FAVORITES));
     MPSA.render.renderMain(filtered, STATE);
     MPSA.render.renderFilterSummary(STATE, filtered.length, getActivePresetName());
     if (MPSA.render.updateSidebarDynamic) {
@@ -101,6 +102,33 @@
       refreshAll();
     },
     getLastSavedAt: () => LAST_SAVED_AT,
+    isFavorite: (sessionId) => MPSA.storage.isFavorite(FAVORITES, sessionId),
+    getFavoritesCount: () => FAVORITES.size,
+    toggleFavorite: (sessionId) => {
+      const nowFav = MPSA.storage.toggleFavorite(FAVORITES, sessionId);
+      // Update just the clicked card's star without a full refresh
+      const card = document.querySelector(`.session-card[data-session-id="${sessionId}"]`);
+      if (card) {
+        const star = card.querySelector(".fav-star");
+        if (star) {
+          star.classList.toggle("on", nowFav);
+          star.textContent = nowFav ? "★" : "☆";
+          star.title = nowFav ? "Remove from favorites" : "Add to favorites";
+        }
+      }
+      // If "Favorites only" is active, the filter result changes → re-filter main.
+      // Otherwise only the sidebar count needs updating.
+      if (STATE.favoritesOnly) {
+        refresh();
+      } else if (MPSA.render.updateSidebarDynamic) {
+        // Update the favorites count in the sidebar. Since the Favorites filter
+        // section is a static part, we need a partial rebuild that also swaps
+        // it. For simplicity do a full sidebar rebuild; scroll is preserved.
+        if (MPSA.render.renderSidebar) {
+          MPSA.render.renderSidebar(PROGRAM, STATE, MPSA.storage.listPresets(), ACTIVE_PRESET_ID);
+        }
+      }
+    },
     refresh,
     refreshAll,
   };
