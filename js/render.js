@@ -273,11 +273,65 @@
     return section;
   }
 
+  function chipButton(label, onRemove) {
+    const span = el("span", "chip", "× " + label);
+    span.addEventListener("click", (e) => { e.stopPropagation(); onRemove(); });
+    return span;
+  }
+
+  function authorFilterSection(state) {
+    const section = sectionEl("Author");
+    const wrap = el("div", "author-wrap");
+    section.appendChild(wrap);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sidebar-search";
+    input.placeholder = "Type a name…";
+    wrap.appendChild(input);
+
+    const dropdown = el("div", "author-dropdown");
+    wrap.appendChild(dropdown);
+
+    const chips = el("div", "chip-list");
+    const currentAuthors = state.authors || [];
+    for (const name of currentAuthors) {
+      chips.appendChild(chipButton(name, () => {
+        const next = (window.MPSA_APP.getState().authors || []).filter((a) => a !== name);
+        window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), authors: next });
+      }));
+    }
+    wrap.appendChild(chips);
+
+    function renderDropdown() {
+      dropdown.innerHTML = "";
+      const q = input.value.trim();
+      if (!q) return;
+      const results = NS.search.matchPeople(window.MPSA_APP.getPeopleIndex(), q, 8);
+      for (const r of results) {
+        const row = el("div", "dd-item");
+        const name = el("div", "dd-name", r.name);
+        row.appendChild(name);
+        if (r.affiliation) row.appendChild(el("div", "dd-affil", r.affiliation));
+        row.addEventListener("click", () => {
+          const next = new Set(window.MPSA_APP.getState().authors || []);
+          next.add(r.name);
+          window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), authors: Array.from(next).sort() });
+        });
+        dropdown.appendChild(row);
+      }
+    }
+    input.addEventListener("input", renderDropdown);
+    input.addEventListener("blur", () => setTimeout(() => { dropdown.innerHTML = ""; }, 150));
+    return section;
+  }
+
   function renderSidebar(program, state /*, presets, activePresetId */) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
     sidebar.innerHTML = "";
     sidebar.appendChild(dateFilterSection(program, state));
+    sidebar.appendChild(authorFilterSection(state));
     sidebar.appendChild(divisionFilterSection(program, state));
     sidebar.appendChild(keywordFilterSection(state));
     sidebar.appendChild(sessionTypeFilterSection(program, state));
