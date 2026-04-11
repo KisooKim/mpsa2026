@@ -308,6 +308,29 @@ def _parse_role_ul(ul) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Helper: derive all_people list for efficient frontend author filtering
+# ---------------------------------------------------------------------------
+def _collect_all_people(session_dict: dict) -> list:
+    """Derive lowercased, deduplicated name list for author filter matching."""
+    names: list = []
+    for role_list in (session_dict.get("chair", []),
+                      session_dict.get("co_chair", []),
+                      session_dict.get("discussant", []),
+                      session_dict.get("participants", [])):
+        for person in role_list:
+            name = (person.get("name") or "").strip().lower()
+            if name:
+                names.append(name)
+    for paper in session_dict.get("papers", []):
+        for author in paper.get("authors", []):
+            name = (author.get("name") or "").strip().lower()
+            if name:
+                names.append(name)
+    # Deduplicate while preserving insertion order
+    return list(dict.fromkeys(names))
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 def parse_session(detail_html: str) -> dict:
@@ -416,7 +439,7 @@ def parse_session(detail_html: str) -> dict:
                 if paper:
                     papers.append(paper)
 
-    return {
+    session_dict = {
         "id": session_id,
         "date": dt.get("date", ""),
         "start_time": dt.get("start_time", ""),
@@ -432,3 +455,5 @@ def parse_session(detail_html: str) -> dict:
         "participants": participants,
         "papers": papers,
     }
+    session_dict["all_people"] = _collect_all_people(session_dict)
+    return session_dict

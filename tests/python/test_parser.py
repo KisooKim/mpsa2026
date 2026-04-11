@@ -91,6 +91,35 @@ class ParseSessionSample2315178Test(unittest.TestCase):
         ):
             self.assertIn(field, self.s, f"missing field: {field}")
 
+    def test_has_all_people_field(self):
+        self.assertIn("all_people", self.s)
+        self.assertIsInstance(self.s["all_people"], list)
+
+    def test_all_people_is_lowercase(self):
+        for name in self.s["all_people"]:
+            self.assertEqual(name, name.lower(),
+                             f"all_people entry not lowercased: {name!r}")
+
+    def test_all_people_contains_chair(self):
+        self.assertIn("shahana sheikh", self.s["all_people"])
+
+    def test_all_people_contains_discussants(self):
+        self.assertIn("sofia marini", self.s["all_people"])
+        self.assertIn("tevfik murat yildirim", self.s["all_people"])
+
+    def test_all_people_contains_paper_authors(self):
+        self.assertIn("abhishek priyadarshi", self.s["all_people"])
+        self.assertIn("ajit phadnis", self.s["all_people"])
+
+    def test_all_people_no_duplicates(self):
+        self.assertEqual(len(self.s["all_people"]), len(set(self.s["all_people"])))
+
+    def test_all_people_no_affiliations(self):
+        # Affiliation text like "University of Pennsylvania" should NOT be in all_people
+        for name in self.s["all_people"]:
+            self.assertNotIn("university", name)
+            self.assertNotIn("institute", name)
+
 
 DETAILS_DIR = Path(__file__).resolve().parents[2] / "raw_html" / "details"
 
@@ -223,6 +252,32 @@ class ParseDateTimeRoomTest(unittest.TestCase):
         """Malformed input returns empty dict without crashing."""
         result = _parse_datetime_room("not a datetime string")
         self.assertEqual(result, {})
+
+
+class ParseSessionLectureTest(unittest.TestCase):
+    """Verify all_people includes participants (non-canonical roles).
+
+    Uses session_2324108 which is a Lecture with Lotte Andersen as Lecturer.
+    The lecturer must appear in all_people in lowercase form.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        path = Path(__file__).resolve().parents[2] / "raw_html" / "details" / "session_2324108.html"
+        if not path.exists():
+            raise unittest.SkipTest("session_2324108.html not present")
+        cls.s = parse_session(path.read_text(encoding="utf-8"))
+
+    def test_lecturer_in_all_people(self):
+        # session_2324108 is a Lecture with Lotte Andersen as Lecturer
+        names = self.s["all_people"]
+        # The lecturer's name should appear in lowercase
+        self.assertTrue(any("andersen" in n for n in names),
+                        f"Lecturer not in all_people: {names}")
+
+    def test_lecturer_name_is_lowercased(self):
+        names = self.s["all_people"]
+        self.assertIn("lotte andersen", names)
 
 
 if __name__ == "__main__":
