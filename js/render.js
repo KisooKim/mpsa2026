@@ -33,11 +33,22 @@
     });
   }
 
+  function renderPersonList(parent, label, people) {
+    if (!people || people.length === 0) return;
+    parent.appendChild(el("div", "detail-label", label));
+    for (const p of people) {
+      const txt = p.affiliation ? `${p.name} (${p.affiliation})` : p.name;
+      parent.appendChild(el("div", "detail-person", txt));
+    }
+  }
+
   function renderSessionCard(session) {
-    // Task 12 version: collapsed card only (no detail expansion yet — that's Task 13)
     const card = el("div", "session-card");
     card.dataset.sessionId = session.id;
-    card.appendChild(el("div", "session-title", session.title));
+
+    const title = el("div", "session-title", session.title);
+    card.appendChild(title);
+
     const meta = el("div", "session-meta");
     if (session.division) meta.appendChild(el("span", "division-tag", session.division));
     if (session.session_type) meta.appendChild(el("span", null, session.session_type));
@@ -46,6 +57,34 @@
       meta.appendChild(el("span", null, `${session.papers.length} paper${session.papers.length === 1 ? "" : "s"}`));
     }
     card.appendChild(meta);
+
+    const detail = el("div", "session-detail");
+    renderPersonList(detail, "Chair", session.chair);
+    renderPersonList(detail, "Co-chair", session.co_chair);
+    renderPersonList(detail, "Discussant", session.discussant);
+    renderPersonList(detail, "Participants", session.participants);
+    if (session.papers && session.papers.length) {
+      detail.appendChild(el("div", "detail-label", "Papers"));
+      for (const paper of session.papers) {
+        const row = el("div", "detail-paper");
+        row.appendChild(document.createTextNode("• " + (paper.title || "")));
+        const authorNames = (paper.authors || [])
+          .map((a) => a.affiliation ? `${a.name} (${a.affiliation})` : a.name)
+          .join(", ");
+        if (authorNames) {
+          const au = el("span", "author", "  — " + authorNames);
+          row.appendChild(au);
+        }
+        detail.appendChild(row);
+      }
+    }
+    card.appendChild(detail);
+
+    card.addEventListener("click", (e) => {
+      e.stopPropagation();
+      card.classList.toggle("expanded");
+    });
+
     return card;
   }
 
