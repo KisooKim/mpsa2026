@@ -478,3 +478,58 @@ def build_program(sessions: list) -> dict:
         "session_types": session_types,
         "sessions": sessions,
     }
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+def main() -> int:
+    import argparse
+    import json
+    import sys
+    from pathlib import Path
+
+    ap = argparse.ArgumentParser(description="Parse MPSA 2026 session detail HTML into program.json")
+    ap.add_argument("--details", default="raw_html/details", help="Directory containing session_*.html files")
+    ap.add_argument("--out", default="data/program.json", help="Output JSON path")
+    ap.add_argument("--pretty", action="store_true", help="Pretty-print the JSON output")
+    args = ap.parse_args()
+
+    details_dir = Path(args.details)
+    if not details_dir.is_dir():
+        print(f"ERROR: details directory not found: {details_dir}", file=sys.stderr)
+        return 1
+
+    files = sorted(details_dir.glob("session_*.html"))
+    if not files:
+        print(f"ERROR: no session_*.html files in {details_dir}", file=sys.stderr)
+        return 1
+
+    print(f"[parse_mpsa] reading {len(files)} detail files...", file=sys.stderr)
+    sessions: list = []
+    skipped = 0
+    for path in files:
+        try:
+            html = path.read_text(encoding="utf-8")
+            session = parse_session(html)
+            sessions.append(session)
+        except Exception as e:
+            skipped += 1
+            print(f"[parse_mpsa] skip {path.name}: {type(e).__name__}: {e}", file=sys.stderr)
+
+    print(f"[parse_mpsa] parsed {len(sessions)} sessions ({skipped} skipped)", file=sys.stderr)
+
+    program = build_program(sessions)
+
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    indent = 2 if args.pretty else None
+    out.write_text(json.dumps(program, indent=indent, ensure_ascii=False), encoding="utf-8")
+
+    size_kb = out.stat().st_size / 1024
+    print(f"[parse_mpsa] wrote {out} ({size_kb:.0f} KB)", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
