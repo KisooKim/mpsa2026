@@ -15,30 +15,46 @@ MPSA 2026 컨퍼런스(83rd Annual Midwest Political Science Association, 2026-0
 
 **언어**: 사이트 UI는 영어로 작성한다 (원본 데이터가 영어이고, 학술 용어 혼재 방지). 설계·개발 논의는 한국어.
 
-## 2. 데이터 수집 (수동 단계)
+## 2. 데이터 수집 (두 단계)
 
-공식 사이트는 PHPSESSID 세션 쿠키를 요구해서 서버 측 크롤링이 불안정하다. 가장 신뢰도 높은 방법은 브라우저에서 사용자가 직접 DOM을 덤프하는 것.
+공식 allacademic 사이트는 두 가지 뷰를 제공한다:
+- **Day 리스팅 페이지** — 하루 치 세션 목록, 각 세션은 제목·시간·분과·타입만. PHPSESSID 쿠키가 필요해서 브라우저에서 덤프해야 함.
+- **세션 상세 페이지** — Chair, Discussant, 논문, 저자, 소속까지 전부 포함. **`online_program_direct_link` 엔드포인트를 통해 쿠키 없이 공개적으로 접근 가능.**
 
-**절차** (4일치 반복):
+즉, 사용자가 해야 할 수동 단계는 **day 리스팅 덤프 4번**뿐이고, 상세 페이지는 스크립트가 자동으로 긁어온다.
+
+### 2.1 Day 리스팅 덤프 (수동, 4회)
 1. 브라우저에서 MPSA 프로그램 사이트에 로그인/진입
-2. "Browse by Day"로 4/23 페이지를 전부 로드 (스크롤 등으로 lazy-load가 있다면 다 펼쳐지게)
-3. DevTools Console 열고 다음 실행:
-   ```js
-   copy(document.documentElement.outerHTML)
-   ```
-4. 로컬 파일 `raw_html/day1-2026-04-23.html`에 붙여넣고 저장
-5. 4/24 → `day2-2026-04-24.html`, 4/25 → `day3-2026-04-25.html`, 4/26 → `day4-2026-04-26.html` 반복
+2. "Browse by Day"로 4/23 페이지를 열고 lazy-load가 있다면 끝까지 스크롤
+3. DevTools Console에서: `copy(document.documentElement.outerHTML)`
+4. `raw_html/day1-2026-04-23.html`에 저장
+5. 4/24 → `day2-...`, 4/25 → `day3-...`, 4/26 → `day4-...` 반복
 
-`raw_html/` 디렉터리는 `.gitignore`에 올려서 저장소에 올라가지 않게 한다 (저작권·PII 고려).
+### 2.2 상세 페이지 일괄 수집 (자동)
+
+`scripts/fetch_details.py`를 실행하면:
+1. 4개 day 리스팅 HTML을 파싱해서 세션 ID 추출 (day1=298, day2=363, day3=351, day4=87, 총 1,099개)
+2. 각 ID에 대해 다음 URL을 10-worker 병렬로 요청:
+   ```
+   http://convention2.allacademic.com/one/mpsa/mpsa26/index.php?program_focus=view_session&selected_session_id={id}&cmd=online_program_direct_link&sub_action=online_program
+   ```
+3. 응답을 `raw_html/details/session_{id}.html`로 저장
+4. 전체 ~26 MB, 첫 실행은 5분 내, 이후는 캐싱되어 즉시 완료
+
+`raw_html/` 전체는 `.gitignore`에 올려서 저장소에 올라가지 않게 한다 (저작권·PII 고려).
+
+### 2.3 파서 입력
+
+Task 3+의 파서는 **오직 `raw_html/details/session_*.html`만 읽는다.** 리스팅 페이지는 세션 ID 수집 용도로만 쓰이고 파서와 관련 없다. 상세 페이지 헤더가 날짜·시간·방·타입·분과를 전부 담고 있어서 리스팅을 교차참조할 필요가 없다.
 
 ## 3. 파서 (Python, 일회성)
 
-수집된 HTML 4개를 읽고 단일 `program.json`으로 구조화한다.
+`raw_html/details/session_*.html` 파일 1,099개를 읽고 단일 `program.json`으로 구조화한다.
 
 **기술 선택**:
 - Python 3 + `beautifulsoup4` + `lxml`
 - 스크립트 한 개: `scripts/parse_mpsa.py`
-- 실행: `python scripts/parse_mpsa.py raw_html/ > data/program.json`
+- 실행: `python scripts/parse_mpsa.py --details raw_html/details/ --out data/program.json`
 
 **추출 필드**:
 - 세션 레벨: `id`, `date` (ISO), `start_time`, `end_time`, `time_slot` (예: "8:00 AM"), `room`, `title`, `session_type` (Paper Panel / Roundtable / Poster / 등), `division` (Section), `chair[]`, `co_chair[]`, `discussant[]`
