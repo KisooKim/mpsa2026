@@ -262,12 +262,8 @@
     input.className = "sidebar-search";
     input.placeholder = "e.g. democracy populism";
     input.value = state.keyword || "";
-    let t = null;
     input.addEventListener("input", () => {
-      clearTimeout(t);
-      t = setTimeout(() => {
-        window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), keyword: input.value });
-      }, 120);
+      window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), keyword: input.value });
     });
     section.appendChild(input);
     return section;
