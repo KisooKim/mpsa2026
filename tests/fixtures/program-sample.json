@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "conference": "MPSA 2026",
+    "generated_at": "2026-04-11T00:00:00+00:00",
+    "days": ["2026-04-23", "2026-04-24"]
+  },
+  "divisions": ["American Politics", "Comparative Politics"],
+  "session_types": ["Paper Panel", "Roundtable"],
+  "sessions": [
+    {
+      "id": "s1",
+      "date": "2026-04-23",
+      "start_time": "08:00",
+      "end_time": "09:30",
+      "time_slot": "8:00 AM",
+      "room": "Room 101",
+      "title": "Democratic Backsliding in Comparative Perspective",
+      "session_type": "Paper Panel",
+      "division": "Comparative Politics",
+      "chair": [{"name": "Jane Smith", "affiliation": "University of Chicago"}],
+      "co_chair": [],
+      "discussant": [{"name": "Robert Chen", "affiliation": "Yale University"}],
+      "participants": [],
+      "papers": [
+        {
+          "title": "When Elites Defect: Democratic Breakdown",
+          "authors": [{"name": "Minji Kim", "affiliation": "NYU"}]
+        },
+        {
+          "title": "Populist Rhetoric and Voter Mobilization",
+          "authors": [{"name": "Ana Garcia", "affiliation": "UCLA"}]
+        }
+      ],
+      "all_people": ["jane smith", "robert chen", "minji kim", "ana garcia"]
+    },
+    {
+      "id": "s2",
+      "date": "2026-04-23",
+      "start_time": "08:00",
+      "end_time": "09:30",
+      "time_slot": "8:00 AM",
+      "room": "Room 205",
+      "title": "Voting Behavior and Institutions",
+      "session_type": "Paper Panel",
+      "division": "American Politics",
+      "chair": [{"name": "Hyunjin Lee", "affiliation": "University of Chicago"}],
+      "co_chair": [],
+      "discussant": [],
+      "participants": [],
+      "papers": [
+        {
+          "title": "Turnout in the 2024 Election",
+          "authors": [{"name": "David Novak", "affiliation": "Princeton"}]
+        }
+      ],
+      "all_people": ["hyunjin lee", "david novak"]
+    },
+    {
+      "id": "s3",
+      "date": "2026-04-24",
+      "start_time": "14:00",
+      "end_time": "15:30",
+      "time_slot": "2:00 PM",
+      "room": "Room 302",
+      "title": "Roundtable: Democracy Under Stress",
+      "session_type": "Roundtable",
+      "division": "Comparative Politics",
+      "chair": [{"name": "Jane Smith", "affiliation": "University of Chicago"}],
+      "co_chair": [],
+      "discussant": [],
+      "participants": [],
+      "papers": [],
+      "all_people": ["jane smith"]
+    }
+  ]
+}
