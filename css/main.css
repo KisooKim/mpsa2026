@@ -344,3 +344,4 @@ html, body {
   border-color: rgba(107,159,255,0.4);
   color: var(--accent-2);
 }
+.preset-mod { margin-left: auto; color: var(--warn); font-size: 12px; }

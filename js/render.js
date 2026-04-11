@@ -336,7 +336,11 @@
         const isActive = p.id === activePresetId;
         const item = el("div", "preset-item" + (isActive ? " active" : ""));
         item.appendChild(el("span", "preset-dot", ""));
-        item.appendChild(el("span", "preset-name", p.name));
+        const nameEl = el("span", "preset-name", p.name);
+        item.appendChild(nameEl);
+        if (isActive && window.MPSA_APP.isPresetModified()) {
+          item.appendChild(el("span", "preset-mod", "●"));
+        }
         item.addEventListener("click", () => {
           window.MPSA_APP.setState(p.filters);
           window.MPSA_APP.setActivePresetId(p.id);
@@ -346,17 +350,33 @@
     }
     section.appendChild(list);
 
-    const saveBtn = el("button", "preset-btn primary", "+ Save current");
-    saveBtn.addEventListener("click", () => {
-      if (NS.filters.isEmpty(window.MPSA_APP.getState())) {
-        alert("Pick at least one filter before saving a view.");
-        return;
-      }
-      const name = prompt("Name this view:");
-      if (!name) return;
-      window.MPSA_APP.saveAsNew(name);
-    });
-    section.appendChild(saveBtn);
+    const modified = activePresetId && window.MPSA_APP.isPresetModified();
+    if (modified) {
+      const activePreset = presets.find((x) => x.id === activePresetId);
+      const updateBtn = el("button", "preset-btn primary", "Update \"" + activePreset.name + "\"");
+      updateBtn.addEventListener("click", () => window.MPSA_APP.updateActivePreset());
+      section.appendChild(updateBtn);
+
+      const newBtn = el("button", "preset-btn", "Save as new");
+      newBtn.addEventListener("click", () => {
+        const name = prompt("Name this view:");
+        if (!name) return;
+        window.MPSA_APP.saveAsNew(name);
+      });
+      section.appendChild(newBtn);
+    } else {
+      const saveBtn = el("button", "preset-btn primary", "+ Save current");
+      saveBtn.addEventListener("click", () => {
+        if (NS.filters.isEmpty(window.MPSA_APP.getState())) {
+          alert("Pick at least one filter before saving a view.");
+          return;
+        }
+        const name = prompt("Name this view:");
+        if (!name) return;
+        window.MPSA_APP.saveAsNew(name);
+      });
+      section.appendChild(saveBtn);
+    }
     return section;
   }
 
