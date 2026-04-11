@@ -341,6 +341,31 @@
         if (isActive && window.MPSA_APP.isPresetModified()) {
           item.appendChild(el("span", "preset-mod", "●"));
         }
+        const actions = el("span", "preset-actions");
+        const renameBtn = el("button", "preset-action", "✎");
+        renameBtn.title = "Rename";
+        renameBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const nn = prompt("Rename view:", p.name);
+          if (!nn) return;
+          window.MPSA.storage.renamePreset(p.id, nn);
+          window.MPSA_APP.refresh();
+        });
+        const delBtn = el("button", "preset-action", "🗑");
+        delBtn.title = "Delete";
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!confirm("Delete view \"" + p.name + "\"?")) return;
+          window.MPSA.storage.deletePreset(p.id);
+          if (p.id === window.MPSA_APP.getActivePresetId()) {
+            window.MPSA_APP.setActivePresetId(null);
+          } else {
+            window.MPSA_APP.refresh();
+          }
+        });
+        actions.appendChild(renameBtn);
+        actions.appendChild(delBtn);
+        item.appendChild(actions);
         item.addEventListener("click", () => {
           window.MPSA_APP.setState(p.filters);
           window.MPSA_APP.setActivePresetId(p.id);

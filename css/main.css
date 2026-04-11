@@ -344,4 +344,21 @@ html, body {
   border-color: rgba(107,159,255,0.4);
   color: var(--accent-2);
 }
-.preset-mod { margin-left: auto; color: var(--warn); font-size: 12px; }
+.preset-mod { color: var(--warn); font-size: 12px; }
+.preset-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.preset-item:hover .preset-actions { opacity: 1; }
+.preset-action {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+.preset-action:hover { color: var(--text); }
