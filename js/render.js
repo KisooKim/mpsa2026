@@ -392,8 +392,7 @@
         actions.appendChild(delBtn);
         item.appendChild(actions);
         item.addEventListener("click", () => {
-          window.MPSA_APP.setState(p.filters);
-          window.MPSA_APP.setActivePresetId(p.id);
+          window.MPSA_APP.loadPreset(p);
         });
         list.appendChild(item);
       }

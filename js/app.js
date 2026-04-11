@@ -65,6 +65,15 @@
       SAVED_PRESET_SNAPSHOT = JSON.parse(JSON.stringify(p.filters));
       refresh();
     },
+    loadPreset: (preset) => {
+      STATE = preset.filters;
+      ACTIVE_PRESET_ID = preset.id;
+      MPSA.storage.saveFilters(STATE);
+      MPSA.storage.saveActivePresetId(preset.id);
+      LAST_SAVED_AT = Date.now();
+      SAVED_PRESET_SNAPSHOT = JSON.parse(JSON.stringify(preset.filters));
+      refresh();
+    },
     getLastSavedAt: () => LAST_SAVED_AT,
     refresh,
   };
