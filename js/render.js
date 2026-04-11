@@ -139,6 +139,61 @@
     return el("span", "summary-chip", text);
   }
 
+  // ── Sidebar helpers ──────────────────────────────────────────────────────────
+
+  const DAY_LIST = [
+    { iso: "2026-04-23", short: "Thu", label: "Thu Apr 23" },
+    { iso: "2026-04-24", short: "Fri", label: "Fri Apr 24" },
+    { iso: "2026-04-25", short: "Sat", label: "Sat Apr 25" },
+    { iso: "2026-04-26", short: "Sun", label: "Sun Apr 26" },
+  ];
+
+  function countByDay(program) {
+    const counts = {};
+    for (const s of program.sessions || []) {
+      counts[s.date] = (counts[s.date] || 0) + 1;
+    }
+    return counts;
+  }
+
+  function sectionEl(title) {
+    const section = el("section", "sidebar-section");
+    section.appendChild(el("h4", null, title));
+    return section;
+  }
+
+  function dateFilterSection(program, state) {
+    const section = sectionEl("📅 Date");
+    const counts = countByDay(program);
+    for (const day of DAY_LIST) {
+      const row = el("label", "check-row");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = day.iso;
+      cb.checked = (state.dates || []).includes(day.iso);
+      cb.addEventListener("change", () => {
+        const current = new Set(window.MPSA_APP.getState().dates || []);
+        if (cb.checked) current.add(day.iso); else current.delete(day.iso);
+        window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), dates: Array.from(current).sort() });
+      });
+      row.appendChild(cb);
+      row.appendChild(document.createTextNode(" " + day.label));
+      if (counts[day.iso]) {
+        const c = el("span", "count", String(counts[day.iso]));
+        row.appendChild(c);
+      }
+      section.appendChild(row);
+    }
+    return section;
+  }
+
+  function renderSidebar(program, state /*, presets, activePresetId */) {
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    sidebar.innerHTML = "";
+    sidebar.appendChild(dateFilterSection(program, state));
+  }
+
   function renderFilterSummary(state, totalCount, activePresetName) {
     const bar = document.getElementById("filter-summary");
     if (!bar) return;
@@ -168,5 +223,5 @@
     bar.appendChild(count);
   }
 
-  NS.render = { renderMain, renderFilterSummary };
+  NS.render = { renderMain, renderFilterSummary, renderSidebar };
 })(typeof window !== "undefined" ? window : globalThis);
