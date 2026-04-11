@@ -102,6 +102,48 @@
       refreshAll();
     },
     getLastSavedAt: () => LAST_SAVED_AT,
+    exportBackup: () => {
+      const backup = MPSA.storage.exportAll();
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `mpsa2026-backup-${today}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
+    importBackup: () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json,.json";
+      input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const summary = MPSA.storage.importAll(String(reader.result));
+            // Reload in-memory state from the freshly imported localStorage
+            STATE = MPSA.storage.loadFilters();
+            ACTIVE_PRESET_ID = MPSA.storage.loadActivePresetId();
+            FAVORITES = MPSA.storage.loadFavorites();
+            snapshotForActive();
+            LAST_SAVED_AT = Date.now();
+            refreshAll();
+            alert(`Imported: ${summary.presets} saved view(s), ${summary.favorites} favorite(s)` + (summary.filters ? ", filter state" : ""));
+          } catch (err) {
+            alert("Import failed: " + (err && err.message ? err.message : err));
+          }
+        };
+        reader.onerror = () => alert("Could not read file: " + reader.error);
+        reader.readAsText(file);
+      });
+      input.click();
+    },
     isFavorite: (sessionId) => MPSA.storage.isFavorite(FAVORITES, sessionId),
     getFavoritesCount: () => FAVORITES.size,
     toggleFavorite: (sessionId) => {

@@ -362,16 +362,32 @@
   function sidebarFooter() {
     const footer = el("div", "sidebar-footer");
     footer.id = "sidebar-footer";
+
+    const topRow = el("div", "footer-row");
     const status = el("span", null, "");
     const saved = window.MPSA_APP.getLastSavedAt();
     status.innerHTML = '<span style="color: var(--ok)">✓</span> Auto-saved ' + formatAgo(saved);
-    footer.appendChild(status);
+    topRow.appendChild(status);
 
     const reset = el("button", "reset-btn", "Reset all");
     reset.addEventListener("click", () => {
       window.MPSA_APP.resetAll();
     });
-    footer.appendChild(reset);
+    topRow.appendChild(reset);
+    footer.appendChild(topRow);
+
+    const ioRow = el("div", "footer-row");
+    const exportBtn = el("button", "io-btn", "⬇ Export");
+    exportBtn.title = "Download filters, favorites, and saved views as a JSON backup file";
+    exportBtn.addEventListener("click", () => window.MPSA_APP.exportBackup());
+    ioRow.appendChild(exportBtn);
+
+    const importBtn = el("button", "io-btn", "⬆ Import");
+    importBtn.title = "Load a previously exported backup file (replaces current state)";
+    importBtn.addEventListener("click", () => window.MPSA_APP.importBackup());
+    ioRow.appendChild(importBtn);
+    footer.appendChild(ioRow);
+
     return footer;
   }
 

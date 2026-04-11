@@ -10,7 +10,9 @@ A local HTML + CSS + JavaScript viewer for the **83rd Annual Midwest Political S
 - **Timeline view** — results are grouped by day, then by start time; same-time parallel sessions are laid out side-by-side so you can see conflicts at a glance.
 - **Inline details** — click any session card to expand Chair, Co-Chair, Discussant, Participants, and the full list of papers with authors + affiliations. The expansion happens in place; neighboring cards in the same time slot are not disturbed.
 - **Saved Views** — save any filter combination under a name, switch between multiple saved views, detect when the active view has been edited, update it in place or save as new, rename/delete from the sidebar.
-- **Persistent** — all filter state and saved views are stored in `localStorage`. Close the tab and reopen later; everything comes back.
+- **Favorites** — click the ★ on any session card to mark it as a favorite, then toggle "Show favorites only" in the sidebar to build a personal schedule view.
+- **Persistent** — all filter state, saved views, and favorites are stored in `localStorage`. Close the tab and reopen later; everything comes back.
+- **Backup / restore** — use the Export button in the sidebar footer to download a JSON snapshot of your saved views, favorites, and filter state. Import the same file on another browser or after clearing your cache to restore everything. Put the backup in Dropbox / iCloud / Google Drive to carry your setup between machines.
 
 ## Repository layout
 

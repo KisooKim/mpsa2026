@@ -132,3 +132,96 @@ test("toggleFavorite coerces session IDs to strings", () => {
   assert.ok(storage.isFavorite(favs, "2315178"));  // query as string
   assert.ok(storage.isFavorite(favs, 2315178));    // query as number
 });
+
+test("exportAll captures presets, favorites, filters, and active preset", () => {
+  const { storage } = load();
+  // Seed some state
+  const state = { dates: ["2026-04-23"], authors: ["Jane Smith"], divisions: [], sessionTypes: [], keyword: "democracy", favoritesOnly: true };
+  storage.saveFilters(state);
+  const p = storage.savePreset("Test", state);
+  storage.saveActivePresetId(p.id);
+  const favs = storage.loadFavorites();
+  storage.toggleFavorite(favs, "2315178");
+  storage.toggleFavorite(favs, "2306163");
+
+  const backup = storage.exportAll();
+  assert.equal(backup.app, "mpsa2026-viewer");
+  assert.equal(backup.version, 1);
+  assert.ok(backup.exported_at);
+  assert.deepEqual(backup.filters, state);
+  assert.equal(backup.active_preset_id, p.id);
+  assert.equal(backup.presets.length, 1);
+  assert.equal(backup.presets[0].name, "Test");
+  assert.deepEqual(backup.favorites.sort(), ["2306163", "2315178"]);
+});
+
+test("importAll replaces existing state", () => {
+  const { storage } = load();
+  // Seed initial state that should be overwritten
+  storage.savePreset("Old", storage.emptyFilters());
+  const favs = storage.loadFavorites();
+  storage.toggleFavorite(favs, "old-id");
+
+  // Import a new backup
+  const newBackup = {
+    app: "mpsa2026-viewer",
+    version: 1,
+    exported_at: "2026-04-11T00:00:00Z",
+    filters: { dates: ["2026-04-25"], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false },
+    active_preset_id: null,
+    presets: [
+      { id: "p_imported", name: "Imported", filters: storage.emptyFilters(), createdAt: 100, updatedAt: 200 },
+    ],
+    favorites: ["2315178", "2306163"],
+  };
+  const summary = storage.importAll(newBackup);
+  assert.equal(summary.presets, 1);
+  assert.equal(summary.favorites, 2);
+  assert.equal(summary.filters, true);
+
+  // Verify state was replaced
+  const presets = storage.listPresets();
+  assert.equal(presets.length, 1);
+  assert.equal(presets[0].name, "Imported");
+
+  const favsAfter = storage.loadFavorites();
+  assert.equal(favsAfter.size, 2);
+  assert.ok(favsAfter.has("2315178"));
+  assert.ok(!favsAfter.has("old-id"));
+
+  const filtersAfter = storage.loadFilters();
+  assert.deepEqual(filtersAfter.dates, ["2026-04-25"]);
+});
+
+test("importAll accepts a JSON string", () => {
+  const { storage } = load();
+  const json = JSON.stringify({
+    app: "mpsa2026-viewer",
+    version: 1,
+    filters: storage.emptyFilters(),
+    presets: [],
+    favorites: ["x"],
+  });
+  const summary = storage.importAll(json);
+  assert.equal(summary.favorites, 1);
+});
+
+test("importAll rejects invalid payloads", () => {
+  const { storage } = load();
+  assert.throws(() => storage.importAll(null), /not a JSON object/i);
+  assert.throws(() => storage.importAll({ app: "something-else", version: 1 }), /not an MPSA/i);
+  assert.throws(() => storage.importAll({ app: "mpsa2026-viewer", version: 99 }), /unsupported/i);
+  assert.throws(() => storage.importAll("{not json"), SyntaxError);
+});
+
+test("importAll backfills missing preset timestamps", () => {
+  const { storage } = load();
+  storage.importAll({
+    app: "mpsa2026-viewer",
+    version: 1,
+    presets: [{ id: "p1", name: "NoDates", filters: storage.emptyFilters() }],
+  });
+  const p = storage.listPresets()[0];
+  assert.equal(typeof p.createdAt, "number");
+  assert.equal(typeof p.updatedAt, "number");
+});

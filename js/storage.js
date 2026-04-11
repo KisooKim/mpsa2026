@@ -109,10 +109,82 @@
     return set.has(id);
   }
 
+  // ---- Export / Import ----
+
+  const BACKUP_VERSION = 1;
+
+  function exportAll() {
+    return {
+      app: "mpsa2026-viewer",
+      version: BACKUP_VERSION,
+      exported_at: new Date().toISOString(),
+      filters: loadFilters(),
+      active_preset_id: loadActivePresetId(),
+      presets: listPresets(),
+      favorites: Array.from(loadFavorites()),
+    };
+  }
+
+  // Returns a summary of what was imported, or throws on invalid input.
+  // Strategy: REPLACE (not merge) — simpler and predictable. User runs the
+  // import, and the prior local state is overwritten. They can Export first
+  // if they want a safety copy.
+  function importAll(raw) {
+    let payload = raw;
+    if (typeof raw === "string") {
+      payload = JSON.parse(raw); // throws SyntaxError if malformed
+    }
+    if (!payload || typeof payload !== "object") {
+      throw new Error("Backup file is not a JSON object");
+    }
+    if (payload.app !== "mpsa2026-viewer") {
+      throw new Error("Not an MPSA viewer backup (missing 'app' field)");
+    }
+    if (typeof payload.version !== "number" || payload.version > BACKUP_VERSION) {
+      throw new Error("Unsupported backup version: " + payload.version);
+    }
+
+    const summary = { presets: 0, favorites: 0, filters: false };
+
+    if (payload.filters && typeof payload.filters === "object") {
+      saveFilters(payload.filters);
+      summary.filters = true;
+    }
+    if (Array.isArray(payload.presets)) {
+      // Replace the entire presets list. Each entry must at minimum have
+      // id + name + filters; missing timestamps are backfilled to now.
+      const now = Date.now();
+      const sanitized = payload.presets
+        .filter((p) => p && typeof p === "object" && p.id && p.name && p.filters)
+        .map((p) => ({
+          id: String(p.id),
+          name: String(p.name),
+          filters: p.filters,
+          createdAt: typeof p.createdAt === "number" ? p.createdAt : now,
+          updatedAt: typeof p.updatedAt === "number" ? p.updatedAt : now,
+        }));
+      savePresetsArray(sanitized);
+      summary.presets = sanitized.length;
+    }
+    if (Array.isArray(payload.favorites)) {
+      const set = new Set(payload.favorites.map(String));
+      saveFavorites(set);
+      summary.favorites = set.size;
+    }
+    if (typeof payload.active_preset_id === "string") {
+      saveActivePresetId(payload.active_preset_id);
+    } else if (payload.active_preset_id === null) {
+      saveActivePresetId(null);
+    }
+    return summary;
+  }
+
   NS.storage = {
     emptyFilters, loadFilters, saveFilters,
     listPresets, savePreset, updatePreset, renamePreset, deletePreset,
     loadActivePresetId, saveActivePresetId,
     loadFavorites, saveFavorites, isFavorite, toggleFavorite,
+    exportAll, importAll,
+    BACKUP_VERSION,
   };
 })(typeof window !== "undefined" ? window : globalThis);
