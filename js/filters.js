@@ -62,10 +62,12 @@
 
   function matchesAuthors(session, state) {
     if (!state.authors || state.authors.length === 0) return true;
-    const bag = (session.all_people || []).join(" | ");
+    const people = session.all_people || [];
     for (const authorQuery of state.authors) {
       const needle = String(authorQuery).toLowerCase();
-      if (bag.includes(needle)) return true;
+      for (const entry of people) {
+        if (entry.includes(needle)) return true;
+      }
     }
     return false;
   }

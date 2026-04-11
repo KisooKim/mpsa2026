@@ -72,6 +72,15 @@ test("authors OR'd", () => {
   assert.equal(F.matches(s2, { ...empty, authors: ["Hyunjin Lee", "Jane Smith"] }), true);
 });
 
+test("matchesAuthors does not leak across the separator boundary", () => {
+  const F = load();
+  // all_people = ["jane smith", "robert chen"] — query "h ro" would match the
+  // old ' | '-joined string. With per-entry iteration it must NOT match.
+  assert.equal(F.matches(s1, { ...empty, authors: ["h ro"] }), false);
+  // And a real partial still works
+  assert.equal(F.matches(s1, { ...empty, authors: ["jane"] }), true);
+});
+
 test("keyword single word matches session title", () => {
   const F = load();
   assert.equal(F.matches(s1, { ...empty, keyword: "democratic" }), true);
