@@ -1,0 +1,100 @@
+(function (root) {
+  const NS = root.MPSA = root.MPSA || {};
+  const document = root.document;
+
+  const DAY_NAMES = {
+    "2026-04-23": "Thursday, April 23",
+    "2026-04-24": "Friday, April 24",
+    "2026-04-25": "Saturday, April 25",
+    "2026-04-26": "Sunday, April 26",
+  };
+
+  function el(tag, cls, text) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function groupByDayAndTime(sessions) {
+    const byDay = new Map();
+    for (const s of sessions) {
+      if (!byDay.has(s.date)) byDay.set(s.date, new Map());
+      const byTime = byDay.get(s.date);
+      const key = s.start_time || "unknown";
+      if (!byTime.has(key)) byTime.set(key, { label: s.time_slot || key, items: [] });
+      byTime.get(key).items.push(s);
+    }
+    const daysOrdered = Array.from(byDay.keys()).sort();
+    return daysOrdered.map((day) => {
+      const byTime = byDay.get(day);
+      const times = Array.from(byTime.keys()).sort().map((t) => byTime.get(t));
+      return { day, times };
+    });
+  }
+
+  function renderSessionCard(session) {
+    // Task 12 version: collapsed card only (no detail expansion yet — that's Task 13)
+    const card = el("div", "session-card");
+    card.dataset.sessionId = session.id;
+    card.appendChild(el("div", "session-title", session.title));
+    const meta = el("div", "session-meta");
+    if (session.division) meta.appendChild(el("span", "division-tag", session.division));
+    if (session.session_type) meta.appendChild(el("span", null, session.session_type));
+    if (session.room) meta.appendChild(el("span", null, session.room));
+    if (session.papers && session.papers.length) {
+      meta.appendChild(el("span", null, `${session.papers.length} paper${session.papers.length === 1 ? "" : "s"}`));
+    }
+    card.appendChild(meta);
+    return card;
+  }
+
+  function renderEmptyState(container) {
+    container.innerHTML = "";
+    const wrap = el("div", "empty-state");
+    const inner = el("div", "empty-state-inner");
+    inner.appendChild(el("div", "empty-icon", "🗂️"));
+    inner.appendChild(el("h2", null, "MPSA 2026 Program"));
+    inner.appendChild(el("p", null, "Filter sessions by author, division, topic, or date to build your schedule."));
+    const hint = el("div", "empty-hint");
+    hint.innerHTML = "<strong>← Pick filters in the sidebar.</strong><br>Save combinations you like as Saved Views.";
+    inner.appendChild(hint);
+    wrap.appendChild(inner);
+    container.appendChild(wrap);
+  }
+
+  function renderMain(filteredSessions, state) {
+    const container = document.getElementById("main-content");
+    if (!container) return;
+    container.innerHTML = "";
+    if (NS.filters.isEmpty(state)) {
+      renderEmptyState(container);
+      return;
+    }
+    if (filteredSessions.length === 0) {
+      const none = el("div", "empty-state");
+      const inner = el("div", "empty-state-inner");
+      inner.appendChild(el("h2", null, "No sessions match"));
+      inner.appendChild(el("p", null, "Try removing one of the filters."));
+      none.appendChild(inner);
+      container.appendChild(none);
+      return;
+    }
+    const grouped = groupByDayAndTime(filteredSessions);
+    for (const { day, times } of grouped) {
+      const section = el("section", "day-section");
+      section.appendChild(el("h2", "day-section-header", DAY_NAMES[day] || day));
+      for (const slot of times) {
+        const row = el("div", "time-row");
+        row.appendChild(el("div", "time-label", slot.label));
+        const slotEl = el("div", "time-slot");
+        for (const s of slot.items) slotEl.appendChild(renderSessionCard(s));
+        row.appendChild(slotEl);
+        section.appendChild(row);
+      }
+      container.appendChild(section);
+    }
+  }
+
+  NS.render = { renderMain };
+})(typeof window !== "undefined" ? window : globalThis);
