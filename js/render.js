@@ -326,10 +326,45 @@
     return section;
   }
 
-  function renderSidebar(program, state /*, presets, activePresetId */) {
+  function presetsSection(state, presets, activePresetId) {
+    const section = sectionEl("💾 Saved Views");
+    const list = el("div", "preset-list");
+    if (presets.length === 0) {
+      list.appendChild(el("div", "preset-empty", "No saved views yet"));
+    } else {
+      for (const p of presets) {
+        const isActive = p.id === activePresetId;
+        const item = el("div", "preset-item" + (isActive ? " active" : ""));
+        item.appendChild(el("span", "preset-dot", ""));
+        item.appendChild(el("span", "preset-name", p.name));
+        item.addEventListener("click", () => {
+          window.MPSA_APP.setState(p.filters);
+          window.MPSA_APP.setActivePresetId(p.id);
+        });
+        list.appendChild(item);
+      }
+    }
+    section.appendChild(list);
+
+    const saveBtn = el("button", "preset-btn primary", "+ Save current");
+    saveBtn.addEventListener("click", () => {
+      if (NS.filters.isEmpty(window.MPSA_APP.getState())) {
+        alert("Pick at least one filter before saving a view.");
+        return;
+      }
+      const name = prompt("Name this view:");
+      if (!name) return;
+      window.MPSA_APP.saveAsNew(name);
+    });
+    section.appendChild(saveBtn);
+    return section;
+  }
+
+  function renderSidebar(program, state, presets, activePresetId) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
     sidebar.innerHTML = "";
+    sidebar.appendChild(presetsSection(state, presets || [], activePresetId));
     sidebar.appendChild(dateFilterSection(program, state));
     sidebar.appendChild(authorFilterSection(state));
     sidebar.appendChild(divisionFilterSection(program, state));

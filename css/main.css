@@ -295,3 +295,52 @@ html, body {
   border-radius: 10px;
   cursor: pointer;
 }
+.preset-list {
+  background: var(--accent-bg);
+  border: 1px solid rgba(107,159,255,0.2);
+  border-radius: 5px;
+  padding: 6px;
+  margin-bottom: 4px;
+  min-height: 30px;
+}
+.preset-empty {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+  padding: 6px 0;
+}
+.preset-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  font-size: 12px;
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.preset-item:hover { background: rgba(255,255,255,0.05); }
+.preset-item.active { background: var(--chip-bg); color: var(--accent-2); font-weight: 500; }
+.preset-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+.preset-item.active .preset-dot { box-shadow: 0 0 0 2px rgba(139,180,255,0.35); }
+.preset-btn {
+  display: block;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.preset-btn.primary {
+  background: var(--chip-bg);
+  border-color: rgba(107,159,255,0.4);
+  color: var(--accent-2);
+}
