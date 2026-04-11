@@ -87,7 +87,21 @@ Two reliable sources, in order of preference:
   tz     = m.group(4)   # "CDT"
   room   = m.group(5)   # "TBA"
   ```
-- **Anomaly:** When start and end times are in the same am/pm period, the start time omits the am/pm suffix (e.g., `"8:00 to 9:30am"` — start is 8:00 AM). The regex above handles this (`(?:am|pm)?`).
+- **Period shorthand rule:** When start and end are in the same am/pm period, the start time omits the suffix (e.g., `"8:00 to 9:30am"` → start is 8:00 AM). When they cross periods, both are explicit (e.g., `"11:40am to 1:10pm"`). The regex above handles both cases via `(?:am|pm)?`.
+- **Time-to-24h conversion rule (IMPORTANT for the parser):** After the regex match, if the start time's period is missing, **inherit it from the end time's period.** That is:
+  - `"8:00 to 9:30am"` → start period = "am" (inherited), start = 08:00, end = 09:30
+  - `"2:00 to 3:30pm"` → start period = "pm" (inherited), start = 14:00, end = 15:30
+  - `"11:40am to 1:10pm"` → start period = "am" (explicit), start = 11:40, end = 13:10
+- **Observed distribution across all 1,099 sessions** (empirically verified by scanning every detail file):
+
+  | Pattern | Count | Example |
+  |---|---|---|
+  | `(none)→pm` (inherit pm) | 517 | `"2:00 to 3:30pm"` |
+  | `(none)→am` (inherit am) | 407 | `"8:00 to 9:30am"` |
+  | `am→pm` (cross-period, explicit) | 175 | `"11:40am to 1:10pm"` |
+  | `pm→am` / `pm→pm` (would need `_to_24h` logic adjustment) | 0 | — (none observed) |
+
+  Total: 1,099. The regex + inheritance rule covers 100% of the corpus. No session crosses midnight or has a "pm → am" pattern.
 
 ---
 
