@@ -485,6 +485,76 @@ html, body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26' fill='%23f97316' stroke='%23f97316' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+/* ── Header controls ──────────────────────────────── */
+
+.drawer-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.header-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.font-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 500;
+  padding: 4px 8px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.font-btn:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+.font-btn.active {
+  color: var(--text);
+  font-weight: 700;
+  border-bottom: 2px solid var(--accent);
+}
+
+.contrast-btn {
+  background: none;
+  border: 1px solid transparent;
+  font-size: 18px;
+  color: var(--muted);
+  padding: 4px 8px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.contrast-btn:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+.contrast-btn[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--chip-bg);
+}
+
+.drawer-overlay {
+  display: none;
+}
+
 /* ── Focus indicators ─────────────────────────────── */
 
 .check-row input[type="checkbox"]:focus-visible {

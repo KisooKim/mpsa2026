@@ -6,6 +6,8 @@
   let SAVED_PRESET_SNAPSHOT = null;
   let LAST_SAVED_AT = 0;
   let FAVORITES = MPSA.storage.loadFavorites();
+  let FONT_SCALE = MPSA.storage.loadFontScale();
+  let HIGH_CONTRAST = MPSA.storage.loadHighContrast();
 
   function snapshotForActive() {
     if (!ACTIVE_PRESET_ID) { SAVED_PRESET_SNAPSHOT = null; return; }
@@ -53,6 +55,47 @@
     MPSA.storage.saveFilters(STATE);
     LAST_SAVED_AT = Date.now();
     refresh();
+  }
+
+  function applyFontScale(scale) {
+    FONT_SCALE = scale;
+    document.documentElement.style.setProperty("--font-scale", scale);
+    MPSA.storage.saveFontScale(scale);
+    document.querySelectorAll(".font-btn").forEach((btn) => {
+      btn.classList.toggle("active", parseFloat(btn.dataset.scale) === scale);
+    });
+  }
+
+  function applyHighContrast(on) {
+    HIGH_CONTRAST = on;
+    document.body.classList.toggle("high-contrast", on);
+    MPSA.storage.saveHighContrast(on);
+    const btn = document.getElementById("contrast-toggle");
+    if (btn) btn.setAttribute("aria-pressed", String(on));
+  }
+
+  function initHeaderControls() {
+    document.querySelectorAll(".font-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applyFontScale(parseFloat(btn.dataset.scale));
+      });
+    });
+
+    const contrastBtn = document.getElementById("contrast-toggle");
+    if (contrastBtn) {
+      contrastBtn.addEventListener("click", () => {
+        applyHighContrast(!HIGH_CONTRAST);
+      });
+    }
+
+    // Auto-detect system high contrast preference
+    const contrastMq = window.matchMedia("(prefers-contrast: more)");
+    if (contrastMq.matches && !MPSA.storage.loadHighContrast()) {
+      applyHighContrast(true);
+    }
+    contrastMq.addEventListener("change", (e) => {
+      applyHighContrast(e.matches);
+    });
   }
 
   window.MPSA_APP = {
@@ -190,6 +233,9 @@
       return;
     }
     snapshotForActive();
+    applyFontScale(FONT_SCALE);
+    applyHighContrast(HIGH_CONTRAST);
+    initHeaderControls();
     refreshAll();
   });
 })();
