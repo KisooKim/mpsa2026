@@ -178,7 +178,7 @@ html, body {
 .session-card.expanded .session-detail { display: block; }
 
 .detail-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -206,7 +206,7 @@ html, body {
   border-left: 3px solid var(--accent);
   padding: 10px 14px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   text-align: left;
   color: var(--muted);
 }
@@ -214,7 +214,7 @@ html, body {
 .sidebar-section { margin-bottom: 20px; }
 .sidebar-section h4 {
   margin: 0 0 10px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
@@ -226,7 +226,7 @@ html, body {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 0.625rem;
   color: var(--muted);
   display: flex;
   flex-direction: column;
@@ -250,7 +250,7 @@ html, body {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 6px 12px;
   min-height: 36px;
   border-radius: 6px;
@@ -295,7 +295,7 @@ html, body {
 .check-row .count {
   margin-left: auto;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 .check-row input[type="checkbox"] {
   -webkit-appearance: none;
@@ -378,7 +378,7 @@ html, body {
 .chip {
   background: var(--chip-bg);
   color: var(--text);
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 2px 8px;
   border-radius: 100px;
   cursor: pointer;
@@ -393,7 +393,7 @@ html, body {
 }
 .preset-empty {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.625rem;
   text-align: center;
   padding: 6px 0;
 }
@@ -422,7 +422,7 @@ html, body {
   background: rgba(0,0,0,0.02);
   border: 1px solid var(--border);
   color: var(--text);
-  font-size: 11px;
+  font-size: 0.6875rem;
   padding: 5px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -433,7 +433,7 @@ html, body {
   background: var(--chip-bg);
   border-color: #ddd;
 }
-.preset-mod { color: var(--warn); font-size: 12px; }
+.preset-mod { color: var(--warn); font-size: 0.75rem; }
 .preset-actions {
   margin-left: auto;
   display: flex;
@@ -446,7 +446,7 @@ html, body {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
   padding: 1px 4px;
   cursor: pointer;
 }
@@ -455,7 +455,7 @@ html, body {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 6px 12px;
   min-height: 36px;
   border-radius: 6px;
@@ -728,7 +728,7 @@ html, body {
     background: var(--accent);
     color: var(--bg);
     border: none;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-family: var(--font);
     font-weight: 600;
     padding: 12px;
