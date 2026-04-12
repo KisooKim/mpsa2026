@@ -236,8 +236,8 @@ test("loadFontScale returns 1.0 when nothing stored", () => {
 
 test("saveFontScale + loadFontScale round-trips", () => {
   const { storage } = load();
-  storage.saveFontScale(1.1);
-  assert.strictEqual(storage.loadFontScale(), 1.1);
+  storage.saveFontScale(1.3);
+  assert.strictEqual(storage.loadFontScale(), 1.3);
   storage.saveFontScale(0.9);
   assert.strictEqual(storage.loadFontScale(), 0.9);
 });

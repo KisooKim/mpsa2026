@@ -115,7 +115,7 @@
 
   function loadFontScale() {
     const val = parseFloat(root.localStorage.getItem(KEY_FONT_SCALE));
-    return [0.9, 1.0, 1.1].includes(val) ? val : 1.0;
+    return [0.9, 1.0, 1.3].includes(val) ? val : 1.0;
   }
 
   function saveFontScale(scale) {
