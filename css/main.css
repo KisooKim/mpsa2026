@@ -248,7 +248,8 @@ html, body {
   border: 1px solid var(--border);
   color: var(--muted);
   font-size: 10px;
-  padding: 3px 8px;
+  padding: 6px 12px;
+  min-height: 36px;
   border-radius: 6px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -281,7 +282,8 @@ html, body {
 .check-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
+  min-height: 36px;
   padding: 4px 0;
   font-size: 0.875rem;
   color: var(--text);
@@ -293,8 +295,32 @@ html, body {
   font-size: 10px;
 }
 .check-row input[type="checkbox"] {
-  accent-color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 2px solid var(--muted);
+  border-radius: 3px;
   cursor: pointer;
+  position: relative;
+  background: var(--bg);
+  transition: border-color 0.15s, background 0.15s;
+}
+.check-row input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check-row input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .sidebar-search {
@@ -330,7 +356,8 @@ html, body {
 }
 .author-dropdown:empty { display: none; }
 .dd-item {
-  padding: 6px 10px;
+  padding: 10px;
+  min-height: 40px;
   cursor: pointer;
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
@@ -426,7 +453,8 @@ html, body {
   border: 1px solid var(--border);
   color: var(--muted);
   font-size: 10px;
-  padding: 3px 8px;
+  padding: 6px 12px;
+  min-height: 36px;
   border-radius: 6px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -435,17 +463,17 @@ html, body {
 
 .fav-star {
   position: absolute;
-  top: 10px;
-  right: 12px;
-  width: 22px;
-  height: 22px;
+  top: 2px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
   font-size: 0;
   color: transparent;
   cursor: pointer;
   background: none;
   border: none;
-  padding: 0;
-  background-size: contain;
+  padding: 11px;
+  background-size: 22px 22px;
   background-repeat: no-repeat;
   background-position: center;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26' fill='none' stroke='%23ccc' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E");
