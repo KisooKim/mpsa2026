@@ -98,6 +98,72 @@
     });
   }
 
+  function openDrawer() {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("drawer-overlay");
+    if (sidebar) sidebar.classList.add("open");
+    if (overlay) overlay.classList.add("visible");
+    if (sidebar) sidebar.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDrawer() {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("drawer-overlay");
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("visible");
+    if (sidebar) sidebar.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  function initDrawer() {
+    const toggle = document.getElementById("drawer-toggle");
+    const overlay = document.getElementById("drawer-overlay");
+
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar && sidebar.classList.contains("open")) {
+          closeDrawer();
+        } else {
+          openDrawer();
+        }
+      });
+    }
+
+    if (overlay) {
+      overlay.addEventListener("click", closeDrawer);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const sidebar = document.getElementById("sidebar");
+      if (!sidebar || !sidebar.classList.contains("open")) return;
+
+      if (e.key === "Escape") {
+        closeDrawer();
+        if (toggle) toggle.focus();
+        return;
+      }
+
+      // Focus trap: keep Tab cycling within the drawer
+      if (e.key === "Tab") {
+        const focusable = sidebar.querySelectorAll(
+          'button, input, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+  }
+
   window.MPSA_APP = {
     getState: () => STATE,
     setState: (next) => { STATE = next; onFiltersChanged(); },
@@ -218,6 +284,7 @@
     },
     refresh,
     refreshAll,
+    closeDrawer,
   };
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -237,6 +304,11 @@
     applyFontScale(FONT_SCALE);
     applyHighContrast(HIGH_CONTRAST);
     initHeaderControls();
+    initDrawer();
+    // On desktop, sidebar is always visible
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    const sidebarEl = document.getElementById("sidebar");
+    if (sidebarEl) sidebarEl.setAttribute("aria-hidden", isMobile ? "true" : "false");
     refreshAll();
   });
 })();

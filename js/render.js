@@ -464,6 +464,14 @@
     ioRow.appendChild(importBtn);
     footer.appendChild(ioRow);
 
+    const closeRow = el("div", "drawer-close-row");
+    const closeBtn = el("button", "drawer-close-btn", "Apply & Close");
+    closeBtn.addEventListener("click", () => {
+      if (window.MPSA_APP.closeDrawer) window.MPSA_APP.closeDrawer();
+    });
+    closeRow.appendChild(closeBtn);
+    footer.appendChild(closeRow);
+
     return footer;
   }
 
