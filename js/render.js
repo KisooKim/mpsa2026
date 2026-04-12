@@ -606,19 +606,19 @@
       bar.appendChild(chipEl("⭐ Favorites only"));
     }
     if (state.dates && state.dates.length) {
-      bar.appendChild(chipEl("📅 " + state.dates.map((d) => d.slice(5)).join(", ")));
+      for (const d of state.dates) bar.appendChild(chipEl("📅 " + d.slice(5)));
     }
     if (state.divisions && state.divisions.length) {
-      bar.appendChild(chipEl("🏛 " + state.divisions.join(", ")));
+      for (const d of state.divisions) bar.appendChild(chipEl("🏛 " + d));
     }
     if (state.authors && state.authors.length) {
-      bar.appendChild(chipEl("👤 " + state.authors.join(", ")));
+      for (const a of state.authors) bar.appendChild(chipEl("👤 " + a));
     }
     if (state.affiliations && state.affiliations.length) {
-      bar.appendChild(chipEl("🏫 " + state.affiliations.join(", ")));
+      for (const a of state.affiliations) bar.appendChild(chipEl("🏫 " + a));
     }
     if (state.sessionTypes && state.sessionTypes.length) {
-      bar.appendChild(chipEl("📋 " + state.sessionTypes.join(", ")));
+      for (const t of state.sessionTypes) bar.appendChild(chipEl("📋 " + t));
     }
     if (state.keyword && state.keyword.trim()) {
       bar.appendChild(chipEl("🔍 \"" + state.keyword.trim() + "\""));

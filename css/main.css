@@ -37,8 +37,10 @@ html, body {
   gap: 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
 }
 
@@ -52,6 +54,7 @@ html, body {
 .app-body {
   display: flex;
   min-height: calc(100vh - 52px);
+  padding-top: 52px;
 }
 
 .sidebar {
