@@ -14,7 +14,7 @@ function load() {
   return sandbox.window.MPSA.filters;
 }
 
-const empty = { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
+const empty = { dates: [], authors: [], affiliations: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
 const s1 = program.sessions[0]; // Comparative, democracy/populism
 const s2 = program.sessions[1]; // American, voting
 const s3 = program.sessions[2]; // Roundtable Comparative 04-24
