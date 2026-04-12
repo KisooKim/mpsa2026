@@ -154,7 +154,7 @@
         const star = card.querySelector(".fav-star");
         if (star) {
           star.classList.toggle("on", nowFav);
-          star.textContent = nowFav ? "★" : "☆";
+          star.textContent = "";
           star.title = nowFav ? "Remove from favorites" : "Add to favorites";
         }
       }

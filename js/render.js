@@ -47,7 +47,7 @@
     card.dataset.sessionId = session.id;
 
     const isFav = window.MPSA_APP.isFavorite(session.id);
-    const star = el("button", "fav-star" + (isFav ? " on" : ""), isFav ? "★" : "☆");
+    const star = el("button", "fav-star" + (isFav ? " on" : ""));
     star.title = isFav ? "Remove from favorites" : "Add to favorites";
     star.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -318,14 +318,19 @@
     wrap.appendChild(dropdown);
 
     const chips = el("div", "chip-list");
-    const currentAuthors = state.authors || [];
-    for (const name of currentAuthors) {
-      chips.appendChild(chipButton(name, () => {
-        const next = (window.MPSA_APP.getState().authors || []).filter((a) => a !== name);
-        window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), authors: next });
-      }));
-    }
     wrap.appendChild(chips);
+
+    function rebuildChips() {
+      chips.innerHTML = "";
+      for (const n of (window.MPSA_APP.getState().authors || [])) {
+        chips.appendChild(chipButton(n, () => {
+          const next = (window.MPSA_APP.getState().authors || []).filter((a) => a !== n);
+          window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), authors: next });
+          rebuildChips();
+        }));
+      }
+    }
+    rebuildChips();
 
     function renderDropdown() {
       dropdown.innerHTML = "";
@@ -341,6 +346,9 @@
           const next = new Set(window.MPSA_APP.getState().authors || []);
           next.add(r.name);
           window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), authors: Array.from(next).sort() });
+          input.value = "";
+          dropdown.innerHTML = "";
+          rebuildChips();
         });
         dropdown.appendChild(row);
       }
