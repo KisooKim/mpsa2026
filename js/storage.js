@@ -4,7 +4,9 @@
   const KEY_FILTERS   = "mpsa2026-filters";
   const KEY_PRESETS   = "mpsa2026-presets";
   const KEY_ACTIVE    = "mpsa2026-active-preset";
-  const KEY_FAVORITES = "mpsa2026-favorites";
+  const KEY_FAVORITES     = "mpsa2026-favorites";
+  const KEY_FONT_SCALE    = "mpsa2026-font-scale";
+  const KEY_HIGH_CONTRAST = "mpsa2026-high-contrast";
 
   function emptyFilters() {
     return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
@@ -109,10 +111,31 @@
     return set.has(id);
   }
 
+  // ---- Preferences ----
+
+  function loadFontScale() {
+    const val = parseFloat(root.localStorage.getItem(KEY_FONT_SCALE));
+    return [0.9, 1.0, 1.1].includes(val) ? val : 1.0;
+  }
+
+  function saveFontScale(scale) {
+    root.localStorage.setItem(KEY_FONT_SCALE, String(scale));
+  }
+
+  function loadHighContrast() {
+    return root.localStorage.getItem(KEY_HIGH_CONTRAST) === "true";
+  }
+
+  function saveHighContrast(on) {
+    root.localStorage.setItem(KEY_HIGH_CONTRAST, String(!!on));
+  }
+
   // ---- Export / Import ----
 
   const BACKUP_VERSION = 1;
 
+  // Font scale and high contrast are device-level UI preferences,
+  // intentionally excluded from export/import (not session data).
   function exportAll() {
     return {
       app: "mpsa2026-viewer",
@@ -184,6 +207,7 @@
     listPresets, savePreset, updatePreset, renamePreset, deletePreset,
     loadActivePresetId, saveActivePresetId,
     loadFavorites, saveFavorites, isFavorite, toggleFavorite,
+    loadFontScale, saveFontScale, loadHighContrast, saveHighContrast,
     exportAll, importAll,
     BACKUP_VERSION,
   };

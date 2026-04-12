@@ -225,3 +225,42 @@ test("importAll backfills missing preset timestamps", () => {
   assert.equal(typeof p.createdAt, "number");
   assert.equal(typeof p.updatedAt, "number");
 });
+
+// ── Font scale preferences ──
+
+test("loadFontScale returns 1.0 when nothing stored", () => {
+  const { storage } = load();
+  const val = storage.loadFontScale();
+  assert.strictEqual(val, 1.0);
+});
+
+test("saveFontScale + loadFontScale round-trips", () => {
+  const { storage } = load();
+  storage.saveFontScale(1.1);
+  assert.strictEqual(storage.loadFontScale(), 1.1);
+  storage.saveFontScale(0.9);
+  assert.strictEqual(storage.loadFontScale(), 0.9);
+});
+
+test("loadFontScale rejects invalid values", () => {
+  const { storage, ls } = load();
+  ls.api.setItem("mpsa2026-font-scale", "2.5");
+  assert.strictEqual(storage.loadFontScale(), 1.0);
+  ls.api.setItem("mpsa2026-font-scale", "garbage");
+  assert.strictEqual(storage.loadFontScale(), 1.0);
+});
+
+// ── High contrast preferences ──
+
+test("loadHighContrast returns false when nothing stored", () => {
+  const { storage } = load();
+  assert.strictEqual(storage.loadHighContrast(), false);
+});
+
+test("saveHighContrast + loadHighContrast round-trips", () => {
+  const { storage } = load();
+  storage.saveHighContrast(true);
+  assert.strictEqual(storage.loadHighContrast(), true);
+  storage.saveHighContrast(false);
+  assert.strictEqual(storage.loadHighContrast(), false);
+});
