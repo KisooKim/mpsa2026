@@ -69,6 +69,8 @@
   function applyHighContrast(on) {
     HIGH_CONTRAST = on;
     document.body.classList.toggle("high-contrast", on);
+    // Suppress the prefers-contrast media query when user explicitly overrides
+    document.documentElement.classList.toggle("no-auto-contrast", !on);
     MPSA.storage.saveHighContrast(on);
     const btn = document.getElementById("contrast-toggle");
     if (btn) btn.setAttribute("aria-pressed", String(on));
@@ -105,6 +107,11 @@
     if (overlay) overlay.classList.add("visible");
     if (sidebar) sidebar.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+    // Move focus into the drawer for keyboard users
+    if (sidebar) {
+      const first = sidebar.querySelector("button, input");
+      if (first) first.focus();
+    }
   }
 
   function closeDrawer() {

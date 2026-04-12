@@ -283,7 +283,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 0;
   font-size: 0.875rem;
   color: var(--text);
