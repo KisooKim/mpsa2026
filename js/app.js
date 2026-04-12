@@ -60,6 +60,7 @@
     setState: (next) => { STATE = next; onFiltersChanged(); },
     getProgram: () => PROGRAM,
     getPeopleIndex: () => (PROGRAM ? PROGRAM.peopleIndex : []),
+    getAffiliationIndex: () => (PROGRAM ? PROGRAM.affiliationIndex : []),
     getActivePresetId: () => ACTIVE_PRESET_ID,
     setActivePresetId: (id) => {
       ACTIVE_PRESET_ID = id;
@@ -181,6 +182,7 @@
       if (!res.ok) throw new Error("program.json fetch failed: " + res.status);
       PROGRAM = await res.json();
       PROGRAM.peopleIndex = MPSA.search.buildPeopleIndex(PROGRAM.sessions);
+      PROGRAM.affiliationIndex = MPSA.search.buildAffiliationIndex(PROGRAM.sessions);
     } catch (err) {
       const main = document.getElementById("main-content");
       if (main) main.textContent = "Failed to load data/program.json. Run `python3 scripts/parse_mpsa.py --pretty` first.";

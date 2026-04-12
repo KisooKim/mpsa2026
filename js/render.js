@@ -358,6 +358,60 @@
     return section;
   }
 
+  function affiliationFilterSection(state) {
+    const section = sectionEl("Affiliation");
+    const wrap = el("div", "author-wrap");
+    section.appendChild(wrap);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sidebar-search";
+    input.placeholder = "Type a school / institution…";
+    wrap.appendChild(input);
+
+    const dropdown = el("div", "author-dropdown");
+    wrap.appendChild(dropdown);
+
+    const chips = el("div", "chip-list");
+    wrap.appendChild(chips);
+
+    function rebuildChips() {
+      chips.innerHTML = "";
+      for (const name of (window.MPSA_APP.getState().affiliations || [])) {
+        chips.appendChild(chipButton(name, () => {
+          const next = (window.MPSA_APP.getState().affiliations || []).filter((a) => a !== name);
+          window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), affiliations: next });
+          rebuildChips();
+        }));
+      }
+    }
+    rebuildChips();
+
+    function renderDropdown() {
+      dropdown.innerHTML = "";
+      const q = input.value.trim();
+      if (!q) return;
+      const results = NS.search.matchAffiliations(window.MPSA_APP.getAffiliationIndex(), q, 8);
+      for (const r of results) {
+        const row = el("div", "dd-item");
+        row.appendChild(el("div", "dd-name", r.name));
+        row.appendChild(el("div", "dd-affil", r.count + " session" + (r.count === 1 ? "" : "s")));
+        row.addEventListener("click", () => {
+          const next = new Set(window.MPSA_APP.getState().affiliations || []);
+          next.add(r.name);
+          window.MPSA_APP.setState({ ...window.MPSA_APP.getState(), affiliations: Array.from(next).sort() });
+          input.value = "";
+          dropdown.innerHTML = "";
+          rebuildChips();
+        });
+        dropdown.appendChild(row);
+      }
+    }
+    input.addEventListener("input", renderDropdown);
+    input.addEventListener("blur", () => setTimeout(() => { dropdown.innerHTML = ""; }, 150));
+    return section;
+  }
+
   function formatAgo(ms) {
     if (!ms) return "";
     const diff = Date.now() - ms;
@@ -487,6 +541,7 @@
     sidebar.appendChild(favoritesFilterSection(state));
     sidebar.appendChild(dateFilterSection(program, state));
     sidebar.appendChild(authorFilterSection(state));
+    sidebar.appendChild(affiliationFilterSection(state));
     sidebar.appendChild(divisionFilterSection(program, state));
     sidebar.appendChild(keywordFilterSection(state));
     sidebar.appendChild(sessionTypeFilterSection(program, state));
@@ -532,6 +587,9 @@
     }
     if (state.authors && state.authors.length) {
       bar.appendChild(chipEl("👤 " + state.authors.join(", ")));
+    }
+    if (state.affiliations && state.affiliations.length) {
+      bar.appendChild(chipEl("🏫 " + state.affiliations.join(", ")));
     }
     if (state.sessionTypes && state.sessionTypes.length) {
       bar.appendChild(chipEl("📋 " + state.sessionTypes.join(", ")));

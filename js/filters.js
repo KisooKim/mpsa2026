@@ -2,7 +2,7 @@
   const NS = root.MPSA = root.MPSA || {};
 
   function emptyState() {
-    return { dates: [], authors: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
+    return { dates: [], authors: [], affiliations: [], divisions: [], sessionTypes: [], keyword: "", favoritesOnly: false };
   }
 
   function isEmpty(state) {
@@ -10,6 +10,7 @@
     return (
       (state.dates || []).length === 0 &&
       (state.authors || []).length === 0 &&
+      (state.affiliations || []).length === 0 &&
       (state.divisions || []).length === 0 &&
       (state.sessionTypes || []).length === 0 &&
       !(state.keyword && state.keyword.trim()) &&
@@ -31,6 +32,7 @@
     return (
       eqArr(a.dates || [], b.dates || []) &&
       eqArr(a.authors || [], b.authors || []) &&
+      eqArr(a.affiliations || [], b.affiliations || []) &&
       eqArr(a.divisions || [], b.divisions || []) &&
       eqArr(a.sessionTypes || [], b.sessionTypes || []) &&
       (a.keyword || "") === (b.keyword || "") &&
@@ -78,6 +80,26 @@
     return false;
   }
 
+  function collectAffiliations(session) {
+    const affils = new Set();
+    const check = (p) => { if (p && p.affiliation) affils.add(p.affiliation.toLowerCase()); };
+    for (const c of session.chair || []) check(c);
+    for (const c of session.co_chair || []) check(c);
+    for (const d of session.discussant || []) check(d);
+    for (const p of session.participants || []) check(p);
+    for (const paper of session.papers || []) { for (const a of paper.authors || []) check(a); }
+    return affils;
+  }
+
+  function matchesAffiliations(session, state) {
+    if (!state.affiliations || state.affiliations.length === 0) return true;
+    const affils = collectAffiliations(session);
+    for (const q of state.affiliations) {
+      if (affils.has(q.toLowerCase())) return true;
+    }
+    return false;
+  }
+
   function matchesKeyword(session, state) {
     const kw = (state.keyword || "").trim().toLowerCase();
     if (!kw) return true;
@@ -103,6 +125,7 @@
       matchesDivisions(session, state) &&
       matchesSessionTypes(session, state) &&
       matchesAuthors(session, state) &&
+      matchesAffiliations(session, state) &&
       matchesKeyword(session, state) &&
       matchesFavorites(session, state, favorites)
     );
