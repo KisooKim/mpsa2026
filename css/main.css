@@ -484,3 +484,83 @@ html, body {
 .fav-star.on {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26' fill='%23f97316' stroke='%23f97316' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+
+/* ── Focus indicators ─────────────────────────────── */
+
+.check-row input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.fav-star:focus-visible,
+.io-btn:focus-visible,
+.reset-btn:focus-visible,
+.preset-btn:focus-visible,
+.preset-action:focus-visible,
+.preset-item:focus-visible,
+.sidebar-search:focus-visible,
+.session-card:focus-visible,
+.font-btn:focus-visible,
+.contrast-btn:focus-visible,
+.drawer-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dd-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ── High contrast mode ───────────────────────────── */
+
+.high-contrast {
+  --bg: #ffffff;
+  --panel: #f0f0f0;
+  --panel-2: #ffffff;
+  --border: #000000;
+  --text: #000000;
+  --muted: #444444;
+  --accent: #000000;
+  --accent-2: #000000;
+  --accent-bg: rgba(0,0,0,0.08);
+  --chip-bg: rgba(0,0,0,0.1);
+  --tag-bg: rgba(0,0,0,0.08);
+  --tag-fg: #000000;
+  --ok: #000000;
+}
+
+.high-contrast .session-card {
+  border-width: 2px;
+}
+
+.high-contrast .check-row input[type="checkbox"] {
+  border-width: 2px;
+}
+
+@media (prefers-contrast: more) {
+  :root:not(.no-auto-contrast) {
+    --bg: #ffffff;
+    --panel: #f0f0f0;
+    --panel-2: #ffffff;
+    --border: #000000;
+    --text: #000000;
+    --muted: #444444;
+    --accent: #000000;
+    --accent-2: #000000;
+    --accent-bg: rgba(0,0,0,0.08);
+    --chip-bg: rgba(0,0,0,0.1);
+    --tag-bg: rgba(0,0,0,0.08);
+    --tag-fg: #000000;
+    --ok: #000000;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
