@@ -200,6 +200,7 @@
           star.classList.toggle("on", nowFav);
           star.textContent = "";
           star.title = nowFav ? "Remove from favorites" : "Add to favorites";
+          star.setAttribute("aria-label", nowFav ? "Remove from favorites" : "Add to favorites");
         }
       }
       // If "Favorites only" is active, the filter result changes → re-filter main.

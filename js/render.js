@@ -44,11 +44,14 @@
 
   function renderSessionCard(session) {
     const card = el("div", "session-card");
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-expanded", "false");
     card.dataset.sessionId = session.id;
 
     const isFav = window.MPSA_APP.isFavorite(session.id);
     const star = el("button", "fav-star" + (isFav ? " on" : ""));
-    star.title = isFav ? "Remove from favorites" : "Add to favorites";
+    star.setAttribute("aria-label", isFav ? "Remove from favorites" : "Add to favorites");
     star.addEventListener("click", (e) => {
       e.stopPropagation();
       window.MPSA_APP.toggleFavorite(session.id);
@@ -91,7 +94,17 @@
 
     card.addEventListener("click", (e) => {
       e.stopPropagation();
-      card.classList.toggle("expanded");
+      const expanded = card.classList.toggle("expanded");
+      card.setAttribute("aria-expanded", String(expanded));
+    });
+
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        const expanded = card.classList.toggle("expanded");
+        card.setAttribute("aria-expanded", String(expanded));
+      }
     });
 
     return card;
@@ -165,14 +178,15 @@
     return counts;
   }
 
-  function sectionEl(title) {
+  function sectionEl(title, ariaLabel) {
     const section = el("section", "sidebar-section");
+    if (ariaLabel) section.setAttribute("aria-label", ariaLabel);
     section.appendChild(el("h4", null, title));
     return section;
   }
 
   function favoritesFilterSection(state) {
-    const section = sectionEl("⭐ Favorites");
+    const section = sectionEl("⭐ Favorites", "Favorites filter");
     const row = el("label", "check-row");
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -191,7 +205,7 @@
   }
 
   function dateFilterSection(program, state) {
-    const section = sectionEl("📅 Date");
+    const section = sectionEl("📅 Date", "Date filter");
     const counts = countByDay(program);
     for (const day of DAY_LIST) {
       const row = el("label", "check-row");
@@ -225,7 +239,7 @@
   }
 
   function divisionFilterSection(program, state) {
-    const section = sectionEl("Division");
+    const section = sectionEl("Division", "Division filter");
     const search = document.createElement("input");
     search.type = "text";
     search.className = "sidebar-search";
@@ -263,7 +277,7 @@
   }
 
   function sessionTypeFilterSection(program, state) {
-    const section = sectionEl("Session Type");
+    const section = sectionEl("Session Type", "Session type filter");
     const counts = countByField(program, "session_type");
     for (const t of program.session_types || []) {
       const row = el("label", "check-row");
@@ -284,7 +298,7 @@
   }
 
   function keywordFilterSection(state) {
-    const section = sectionEl("Topic / Keyword");
+    const section = sectionEl("Topic / Keyword", "Keyword filter");
     const input = document.createElement("input");
     input.type = "text";
     input.className = "sidebar-search";
@@ -304,7 +318,7 @@
   }
 
   function authorFilterSection(state) {
-    const section = sectionEl("Author");
+    const section = sectionEl("Author", "Author filter");
     const wrap = el("div", "author-wrap");
     section.appendChild(wrap);
 
@@ -359,7 +373,7 @@
   }
 
   function affiliationFilterSection(state) {
-    const section = sectionEl("Affiliation");
+    const section = sectionEl("Affiliation", "Affiliation filter");
     const wrap = el("div", "author-wrap");
     section.appendChild(wrap);
 
@@ -454,7 +468,7 @@
   }
 
   function presetsSection(state, presets, activePresetId) {
-    const section = sectionEl("💾 Saved in Browser");
+    const section = sectionEl("💾 Saved in Browser", "Saved views");
     section.id = "sidebar-presets-section";
     const list = el("div", "preset-list");
     if (presets.length === 0) {
@@ -535,6 +549,8 @@
   function renderSidebar(program, state, presets, activePresetId) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
+    sidebar.setAttribute("role", "complementary");
+    sidebar.setAttribute("aria-label", "Filters");
     const prevScroll = sidebar.scrollTop;
     sidebar.innerHTML = "";
     sidebar.appendChild(presetsSection(state, presets || [], activePresetId));
@@ -570,6 +586,8 @@
     const bar = document.getElementById("filter-summary");
     if (!bar) return;
     bar.innerHTML = "";
+    bar.setAttribute("aria-live", "polite");
+    bar.setAttribute("role", "status");
     if (NS.filters.isEmpty(state)) return; // CSS :empty hides it
 
     if (activePresetName) {
