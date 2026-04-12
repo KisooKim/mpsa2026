@@ -454,7 +454,7 @@
   }
 
   function presetsSection(state, presets, activePresetId) {
-    const section = sectionEl("💾 Saved Views");
+    const section = sectionEl("💾 Saved in Browser");
     section.id = "sidebar-presets-section";
     const list = el("div", "preset-list");
     if (presets.length === 0) {
