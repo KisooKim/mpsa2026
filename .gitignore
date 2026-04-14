@@ -6,3 +6,18 @@ __pycache__/
 venv/
 node_modules/
 raw_html/
+
+# === Claude/session instruction files (auto-added) ===
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+GEMINI.md
+TODO.md
+DECISIONS.md
+STATUS.md
+LESSONS.md
+SESSION.md
+SESSION_*.md
+.claude/
+.claude-memory/
+session md/
