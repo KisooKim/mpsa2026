@@ -21,3 +21,5 @@ SESSION_*.md
 .claude/
 .claude-memory/
 session md/
+.git.bak-*
+*.onnx
